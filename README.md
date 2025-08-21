@@ -2,15 +2,15 @@
 
 website
 
-frontend:  artisans and users,
+frontend:  artisans and users
 
 
-backend :   database of artisans and other stuff,
+backend :   database of artisans and other stuff
 
 ai automation,
 
 
-NLP - linking API for easy communictaion,
+NLP - linking API for easy communictaion
 
 
 Chatbot
