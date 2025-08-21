@@ -3,8 +3,14 @@
 website
 
 frontend:  artisans and users,
+
+
 backend :   database of artisans and other stuff,
 
 ai automation,
+
+
 NLP - linking API for easy communictaion,
+
+
 Chatbot
