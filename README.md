@@ -17,3 +17,6 @@ Chatbot
 
 
 we can use clustering modle and filter out the artists according to the states or regions
+
+
+Features:Location, Type of artist.
