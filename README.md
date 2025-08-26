@@ -7,6 +7,9 @@ frontend:  artisans and users
 
 backend :   database of artisans and other stuff
 
+Hanishka:
+
+
 ai automation,
 
 
@@ -19,12 +22,18 @@ Chatbot
 we can use clustering modle and filter out the artists according to the states or regions
 
 
+
+Yatindra:
+
+
 Features:Location, Type of artist.
 
 
 Telling their  stories, sale strategies and reaching a digital audience (Social Media)
 
 
+
+Hanishka:
 
 
 AI-Powered Story Generation:
