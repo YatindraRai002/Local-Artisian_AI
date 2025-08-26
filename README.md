@@ -20,3 +20,6 @@ we can use clustering modle and filter out the artists according to the states o
 
 
 Features:Location, Type of artist.
+
+
+Telling their  stories, sale strategies and reaching a digital audience (Social Media)
