@@ -25,6 +25,8 @@ Features:Location, Type of artist.
 Telling their  stories, sale strategies and reaching a digital audience (Social Media)
 
 
+
+
 AI-Powered Story Generation:
 
 
@@ -35,5 +37,20 @@ AI-Powered Story Generation:
 
 
 3.Multi-language Support: Translate stories into multiple languages to reach broader audiences
+
+
+
+
+
+Smart Marketing Tools:
+
+
+1.Social Media Content Generator: AI creates posts, captions, and hashtags optimized for different platforms
+
+
+2.Trend Analysis: AI analyzes market trends and suggests product modifications or new designs
+
+
+3.Price Optimization: AI recommends pricing based on materials, time, market demand, and competitor analysis
 
 
