@@ -66,3 +66,8 @@ Smart Marketing Tools:
 3.Price Optimization: AI recommends pricing based on materials, time, market demand, and competitor analysis
 
 
+Abhiram: 
+1. An AI system that acts as a digital guardian for endangered cultural crafts, automatically documenting techniques, predicting which arts are at risk, and creating economic opportunities to save them.
+2. Promote the endangered cultural crafts more which saves those crafts from extinction
+
+
