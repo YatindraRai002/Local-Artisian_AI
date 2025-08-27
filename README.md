@@ -32,6 +32,9 @@ Features:Location, Type of artist.
 Telling their  stories, sale strategies and reaching a digital audience (Social Media)
 
 
+chat model ke liye **llama-3-70b** use karenge
+
+
 
 Hanishka:
 
