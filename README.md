@@ -65,14 +65,4 @@ Smart Marketing Tools:
 
 3.Price Optimization: AI recommends pricing based on materials, time, market demand, and competitor analysis
 
-vaishnavi:
-Design Co-Creation (AI + Artisan)
-
-Customers upload a sketch/photo/idea → AI converts it into a product design suggestion.
-
-Artisan sees the design → adapts into their craft style.
-
-Example: Customer uploads a modern lamp idea, AI re-imagines it in Terracotta style from West Bengal.
-
-
 
