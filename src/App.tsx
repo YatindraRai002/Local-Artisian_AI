@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
 import { MessageCircle, X, Search, Users, Palette, MapPin, Sparkles, Loader2 } from 'lucide-react';
 import { EnhancedAIAssistant } from './components/EnhancedAIAssistant';
-import { getArtistsData, apiService, waitForData } from './data/artistsData';
+import { getArtistsData, apiService } from './data/artistsData';
+import type { Artist } from './types';
 
 function App() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [artists, setArtists] = useState([]);
-  const [filteredArtists, setFilteredArtists] = useState([]);
+  const [artists, setArtists] = useState<Artist[]>([]);
+  const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
   const [stats, setStats] = useState({
     totalArtists: 0,
     totalCrafts: 0,
     totalStates: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   const toggleChat = () => setIsChatOpen(!isChatOpen);
 
@@ -105,32 +106,59 @@ function App() {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 text-center">
-        <div className="max-w-4xl mx-auto px-4">
-          <h2 className="text-5xl font-bold text-gray-900 mb-6">
+      <section className="relative py-20 text-center overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-200 via-amber-200 to-yellow-200"></div>
+          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
+            <defs>
+              <pattern id="hero-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="10" cy="10" r="2" fill="currentColor" opacity="0.3"/>
+              </pattern>
+            </defs>
+            <rect width="100" height="100" fill="url(#hero-pattern)"/>
+          </svg>
+        </div>
+        
+        <div className="relative max-w-4xl mx-auto px-4">
+          <div className="inline-flex items-center px-4 py-2 bg-orange-100 text-orange-800 rounded-full text-sm font-medium mb-8">
+            <Sparkles className="w-4 h-4 mr-2" />
+            AI-Powered Traditional Craft Discovery Platform
+          </div>
+          
+          <h2 className="text-6xl font-bold text-gray-900 mb-6 leading-tight">
             Discover India's 
             <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent"> Traditional Artists</span>
           </h2>
-          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-            Connect with skilled artisans preserving centuries-old crafts. Find their contact information and explore their beautiful work.
+          <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
+            Connect with skilled artisans preserving centuries-old crafts. Our AI assistant helps you find contact information and explore their beautiful work instantly.
           </p>
           
-          {/* Stats */}
+          {/* Enhanced Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <Users className="w-12 h-12 text-orange-600 mx-auto mb-4" />
-              <div className="text-3xl font-bold text-gray-900 mb-2">{stats.totalArtists}+</div>
-              <div className="text-gray-600">Verified Artists</div>
+            <div className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-orange-100">
+              <div className="bg-gradient-to-br from-orange-100 to-orange-200 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <Users className="w-8 h-8 text-orange-600" />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-3 tabular-nums">{stats.totalArtists.toLocaleString()}+</div>
+              <div className="text-gray-600 font-medium">Verified Artists</div>
+              <div className="text-sm text-gray-500 mt-2">Across India</div>
             </div>
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <Palette className="w-12 h-12 text-purple-600 mx-auto mb-4" />
-              <div className="text-3xl font-bold text-gray-900 mb-2">{stats.totalCrafts}+</div>
-              <div className="text-gray-600">Traditional Crafts</div>
+            <div className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-purple-100">
+              <div className="bg-gradient-to-br from-purple-100 to-purple-200 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <Palette className="w-8 h-8 text-purple-600" />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-3 tabular-nums">{stats.totalCrafts}+</div>
+              <div className="text-gray-600 font-medium">Traditional Crafts</div>
+              <div className="text-sm text-gray-500 mt-2">Ancient & Modern</div>
             </div>
-            <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow">
-              <MapPin className="w-12 h-12 text-green-600 mx-auto mb-4" />
-              <div className="text-3xl font-bold text-gray-900 mb-2">{stats.totalStates}+</div>
-              <div className="text-gray-600">States Covered</div>
+            <div className="group bg-white rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-green-100">
+              <div className="bg-gradient-to-br from-green-100 to-green-200 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <MapPin className="w-8 h-8 text-green-600" />
+              </div>
+              <div className="text-4xl font-bold text-gray-900 mb-3 tabular-nums">{stats.totalStates}+</div>
+              <div className="text-gray-600 font-medium">States Covered</div>
+              <div className="text-sm text-gray-500 mt-2">Pan-India Network</div>
             </div>
           </div>
 
@@ -179,32 +207,75 @@ function App() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredArtists.map((artist) => (
-              <div key={artist.id} className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="font-semibold text-gray-900 text-lg">{artist.name}</h4>
-                  <span className="text-sm text-gray-500">{artist.age}y</span>
+              <div key={artist.id} className="group bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100 overflow-hidden relative">
+                {/* Premium Badge */}
+                <div className="absolute top-0 right-0 bg-gradient-to-r from-orange-400 to-amber-400 text-white px-3 py-1 text-xs font-medium rounded-bl-lg">
+                  Verified
                 </div>
                 
-                <div className="space-y-3">
-                  <div className="flex items-center text-purple-600">
-                    <Palette className="w-4 h-4 mr-2" />
-                    <span className="font-medium text-sm">{artist.craft_type}</span>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-900 text-lg mb-1 group-hover:text-orange-600 transition-colors">{artist.name}</h4>
+                    <div className="flex items-center text-gray-500 text-sm">
+                      <span>{artist.age} years</span>
+                      <span className="mx-2">•</span>
+                      <span className="capitalize">{artist.gender}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl">
+                    <div className="flex items-center text-purple-700">
+                      <Palette className="w-5 h-5 mr-3" />
+                      <div>
+                        <div className="font-semibold text-sm">{artist.craft_type}</div>
+                        <div className="text-xs text-purple-600">Traditional Craft</div>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="flex items-center text-green-600">
-                    <MapPin className="w-4 h-4 mr-2" />
-                    <span className="text-sm">{artist.location.district}, {artist.location.state}</span>
+                  <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
+                    <div className="flex items-center text-green-700">
+                      <MapPin className="w-5 h-5 mr-3" />
+                      <div>
+                        <div className="font-semibold text-sm">{artist.location.district}</div>
+                        <div className="text-xs text-green-600">{artist.location.state}</div>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-3">
-                    <div className="text-xs text-gray-600 mb-1">Contact:</div>
-                    <div className="text-sm font-mono text-blue-700">{artist.contact.phone}</div>
-                    <div className="text-xs text-gray-600 truncate">{artist.contact.email}</div>
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
+                    <div className="text-xs text-blue-600 font-semibold mb-2 uppercase tracking-wide">Contact Information</div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-600">Phone:</span>
+                        <span className="text-sm font-mono text-blue-700 font-semibold">{artist.contact.phone}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-600">Email:</span>
+                        <span className="text-xs text-gray-700 truncate max-w-32 bg-white px-2 py-1 rounded">{artist.contact.email}</span>
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="text-xs text-gray-500">
-                    Languages: {artist.languages.join(', ')}
+                  <div className="flex flex-wrap gap-1">
+                    {artist.languages.slice(0, 3).map((lang, index) => (
+                      <span key={index} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                        {lang}
+                      </span>
+                    ))}
+                    {artist.languages.length > 3 && (
+                      <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                        +{artist.languages.length - 3}
+                      </span>
+                    )}
                   </div>
+                  
+                  {/* Action Button */}
+                  <button className="w-full mt-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white py-2 px-4 rounded-xl font-semibold text-sm hover:from-orange-600 hover:to-amber-600 transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg">
+                    View Full Profile
+                  </button>
                 </div>
               </div>
               ))}

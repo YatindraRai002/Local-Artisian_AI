@@ -218,15 +218,34 @@ export const EnhancedAIAssistant: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Enhanced Chat Header */}
-      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-4 flex items-center">
-        <Bot className="w-6 h-6 mr-3" />
-        <div>
-          <h2 className="font-semibold">Kala-Kaart AI Assistant</h2>
-          <p className="text-sm text-orange-100">Powered by LLMs & Transformers</p>
+      <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 text-white p-6 flex items-center relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <svg className="w-full h-full" viewBox="0 0 100 20">
+            <defs>
+              <pattern id="chat-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                <circle cx="10" cy="10" r="1" fill="white"/>
+              </pattern>
+            </defs>
+            <rect width="100" height="20" fill="url(#chat-pattern)"/>
+          </svg>
         </div>
-        <div className="ml-auto flex items-center space-x-2">
-          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-          <span className="text-xs">Live Data</span>
+        
+        <div className="relative flex items-center">
+          <div className="bg-white/20 p-3 rounded-2xl mr-4">
+            <Bot className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h2 className="font-bold text-xl">Kala-Kaart AI Assistant</h2>
+            <p className="text-orange-100 font-medium">Powered by Advanced NLP & Machine Learning</p>
+          </div>
+        </div>
+        
+        <div className="ml-auto flex items-center space-x-3">
+          <div className="flex items-center bg-green-500/20 px-3 py-1 rounded-full">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
+            <span className="text-xs font-semibold">Live & Ready</span>
+          </div>
         </div>
       </div>
 
@@ -305,7 +324,7 @@ export const EnhancedAIAssistant: React.FC = () => {
                           )}
                           
                           {/* Intent & Entity Display (for debugging) */}
-                          {process.env.NODE_ENV === 'development' && (
+                          {import.meta.env.DEV && (
                             <div className="mb-2 text-xs text-gray-500">
                               Intent: {response.intent} | Entities: {JSON.stringify(response.entities)}
                             </div>

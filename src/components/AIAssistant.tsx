@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Phone, Mail, MapPin, Palette } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { Message, Artist, ChatResponse } from '../types';
-import { artistsData, getCraftTypes, getStates, getDistrictsByState } from '../data/artistsData';
+import { getArtistsData, getCraftTypes, getStates, getDistrictsByState } from '../data/artistsData';
 
 const TypingIndicator = () => (
   <div className="flex items-center space-x-1 p-3">
@@ -70,8 +70,11 @@ const processUserQuery = (query: string): ChatResponse => {
     };
   }
   
+  // Get artists data
+  const artistsData = getArtistsData();
+  
   // Search for specific artist by name
-  const nameMatches = artistsData.filter(artist => 
+  const nameMatches = artistsData.filter((artist: Artist) => 
     artist.name.toLowerCase().includes(lowerQuery.replace(/find|show|tell|about|me/g, '').trim())
   );
   
@@ -91,7 +94,7 @@ const processUserQuery = (query: string): ChatResponse => {
   );
   
   if (matchedCraft) {
-    const craftArtists = artistsData.filter(artist => artist.craft_type === matchedCraft);
+    const craftArtists = artistsData.filter((artist: Artist) => artist.craft_type === matchedCraft);
     return {
       message: `Here are our ${matchedCraft} artists with their contact details:`,
       artists: craftArtists,
@@ -107,7 +110,7 @@ const processUserQuery = (query: string): ChatResponse => {
   );
   
   if (matchedState) {
-    const stateArtists = artistsData.filter(artist => artist.location.state === matchedState);
+    const stateArtists = artistsData.filter((artist: Artist) => artist.location.state === matchedState);
     const districts = getDistrictsByState(matchedState);
     return {
       message: `Found ${stateArtists.length} artists in ${matchedState}. Available in districts: ${districts.join(', ')}`,

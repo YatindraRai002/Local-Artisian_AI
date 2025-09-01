@@ -1,6 +1,8 @@
 import { Artist } from '../types';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.PROD 
+  ? 'https://your-vercel-app.vercel.app/api' 
+  : 'http://localhost:8000';
 
 let artistsData: Artist[] = [];
 let isLoading = false;
