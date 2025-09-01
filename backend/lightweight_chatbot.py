@@ -17,16 +17,18 @@ logger = logging.getLogger(__name__)
 class LightweightDataProcessor:
     """Lightweight data processor without pandas dependency"""
     
-    def __init__(self, csv_path: str):
+    def __init__(self, csv_path: str, max_artists: Optional[int] = None):
         self.csv_path = csv_path
         self.artists_data = []
+        self.max_artists = max_artists
         self.load_data()
     
     def load_data(self):
-        """Load CSV data"""
+        """Load CSV data with optional limit for serverless deployment"""
         try:
             with open(self.csv_path, 'r', encoding='utf-8') as file:
                 reader = csv.DictReader(file)
+                count = 0
                 for row in reader:
                     if row.get('name') and row.get('craft_type') and row.get('state'):
                         # Convert age to int if possible
@@ -35,8 +37,13 @@ class LightweightDataProcessor:
                         except:
                             row['age'] = 0
                         self.artists_data.append(row)
+                        count += 1
+                        
+                        # Stop if max_artists limit reached
+                        if self.max_artists and count >= self.max_artists:
+                            break
             
-            logger.info(f"Loaded {len(self.artists_data)} artist records")
+            logger.info(f"Loaded {len(self.artists_data)} artist records (limit: {self.max_artists or 'none'})")
             
         except Exception as e:
             logger.error(f"Error loading data: {e}")
@@ -153,11 +160,14 @@ class LightweightEnhancedChatbot:
     Enhanced chatbot with advanced NLP capabilities but no heavy dependencies
     """
     
-    def __init__(self, csv_path: str):
+    def __init__(self, csv_path: str, max_artists: Optional[int] = None):
         logger.info("Initializing Lightweight Enhanced Chatbot...")
         
         # Initialize data processor
-        self.data_processor = LightweightDataProcessor(csv_path)
+        if csv_path:
+            self.data_processor = LightweightDataProcessor(csv_path, max_artists)
+        else:
+            self.data_processor = None
         
         # Initialize knowledge base
         self._build_knowledge_base()
