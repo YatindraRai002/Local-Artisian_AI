@@ -97,7 +97,7 @@ export const apiService = {
 
   async getSimilarArtists(artistId: string, limit: number = 5) {
     try {
-      const response = await fetch(`${API_BASE_URL}/artists/similar/${artistId}?limit=${limit}`);
+      const response = await fetch(`${API_BASE_URL}/similar?artistId=${artistId}&limit=${limit}`);
       if (!response.ok) throw new Error('Failed to get similar artists');
       return response.json();
     } catch (error) {

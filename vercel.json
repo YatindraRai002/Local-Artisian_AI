@@ -22,6 +22,12 @@
     },
     "api/stats.js": {
       "maxDuration": 10
+    },
+    "api/similar.js": {
+      "maxDuration": 10
+    },
+    "api/categories.js": {
+      "maxDuration": 10
     }
   },
   "env": {

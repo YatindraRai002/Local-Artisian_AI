@@ -163,11 +163,17 @@ class LightweightEnhancedChatbot:
     def __init__(self, csv_path: str, max_artists: Optional[int] = None):
         logger.info("Initializing Lightweight Enhanced Chatbot...")
         
-        # Initialize data processor
-        if csv_path:
-            self.data_processor = LightweightDataProcessor(csv_path, max_artists)
+        # Initialize data processor with real CSV path
+        if not csv_path:
+            # Default to the clustered artisan data
+            csv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'public', 'Artisans.csv')
+        
+        self.data_processor = LightweightDataProcessor(csv_path, max_artists)
+        
+        if not self.data_processor.artists_data:
+            logger.error("Failed to load artist data - check CSV path")
         else:
-            self.data_processor = None
+            logger.info(f"Successfully loaded {len(self.data_processor.artists_data)} artists from clustering model")
         
         # Initialize knowledge base
         self._build_knowledge_base()
@@ -215,7 +221,7 @@ class LightweightEnhancedChatbot:
                 'haryana', 'himachal pradesh', 'jammu kashmir', 'jammu & kashmir', 'jharkhand', 'karnataka', 
                 'kerala', 'ladakh', 'madhya pradesh', 'maharashtra', 'manipur', 'meghalaya', 
                 'mizoram', 'odisha', 'punjab', 'rajasthan', 'sikkim', 'tamil nadu', 
-                'telangana', 'tripura', 'uttar pradesh', 'uttarakhand', 'west bengal'
+                'telangana', 'tripura', 'uttar pradesh', 'uttarakhand', 'west bengal', 'west bengal','kerela','tamil naidu','karnataka'
             ],
             'crafts': [
                 'pottery', 'weaving', 'painting', 'carving', 'textile', 'metal', 'wood', 
