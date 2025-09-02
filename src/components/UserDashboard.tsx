@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, X, Search, Users, Palette, MapPin, Sparkles, Loader2, LogOut } from 'lucide-react';
+import { MessageCircle, X, Search, Users, Palette, MapPin, Sparkles, Loader2 } from 'lucide-react';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
 import { getArtistsData, apiService } from '../data/artistsData';
-import { useAuth } from '../contexts/AuthContext';
 import type { Artist } from '../types';
 
 export const UserDashboard: React.FC = () => {
-  const { userProfile, logout } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [artists, setArtists] = useState<Artist[]>([]);
@@ -21,13 +19,6 @@ export const UserDashboard: React.FC = () => {
 
   const toggleChat = () => setIsChatOpen(!isChatOpen);
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
 
   // Load data from API on component mount
   useEffect(() => {
@@ -111,22 +102,6 @@ export const UserDashboard: React.FC = () => {
                 />
               </div>
               
-              {/* User Info and Logout */}
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">
-                    {userProfile?.displayName || 'User'}
-                  </div>
-                  <div className="text-xs text-gray-500">Explorer</div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-800 transition-colors rounded-lg hover:bg-gray-100"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="text-sm">Logout</span>
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -158,7 +133,7 @@ export const UserDashboard: React.FC = () => {
             <span className="bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent"> Traditional Artists</span>
           </h2>
           <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
-            Welcome back, {userProfile?.displayName}! Connect with skilled artisans preserving centuries-old crafts. Our AI assistant helps you find contact information and explore their beautiful work instantly.
+            Connect with skilled artisans preserving centuries-old crafts. Our AI assistant helps you find contact information and explore their beautiful work instantly.
           </p>
           
           {/* Enhanced Stats */}
