@@ -34,6 +34,7 @@ It combines **state-of-the-art NLP**, **Retrieval-Augmented Generation (RAG)**, 
 - 🖥️ **Frontend**: React + Vite (TypeScript)  
 - 🚀 **Deployment**: Vercel (optimized for serverless)  
 - 📱 Mobile-first **modern UI/UX**  
+<img width="665" height="536" alt="image" src="https://github.com/user-attachments/assets/82c85e7d-3227-4d03-b660-13492d76372b" />
 
 ---
 
