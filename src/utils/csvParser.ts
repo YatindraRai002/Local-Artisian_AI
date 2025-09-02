@@ -20,9 +20,9 @@ export const parseCSVToArtists = (csvText: string): Artist[] => {
         age: parseInt(values[3]) || 0, // age
         craft_type: values[4], // craft_type
         location: {
-          state: values[5], // state
-          district: values[6], // district
-          village: values[7], // village
+          state: values[5] || '', // state
+          district: values[6] || '', // district
+          village: values[7] || '', // village
         },
         contact: {
           email: values[9], // contact_email
@@ -75,18 +75,13 @@ const formatPhoneNumber = (phone: string): string => {
   // Handle scientific notation like 9.16703E+11
   if (phone.includes('E+')) {
     const num = parseFloat(phone);
-    return Math.round(num).toString();
+    const phoneStr = Math.round(num).toString();
+    // Format as +91 XXXXXXXXXX for Indian phone numbers
+    if (phoneStr.length === 12 && phoneStr.startsWith('91')) {
+      return `+${phoneStr}`;
+    }
+    return phoneStr;
   }
   return phone;
 };
 
-export const loadArtistsFromCSV = async (): Promise<Artist[]> => {
-  try {
-    const response = await fetch('/src/Artisans.csv');
-    const csvText = await response.text();
-    return parseCSVToArtists(csvText);
-  } catch (error) {
-    console.error('Error loading CSV:', error);
-    return [];
-  }
-};

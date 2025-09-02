@@ -1,5 +1,14 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
@@ -14,14 +23,17 @@
     }
   ],
   "functions": {
-    "backend/final_server.py": {
-      "runtime": "python3.9"
+    "api/search.js": {
+      "maxDuration": 10
+    },
+    "api/chat.js": {
+      "maxDuration": 10
+    },
+    "api/stats.js": {
+      "maxDuration": 10
     }
   },
   "env": {
     "NODE_ENV": "production"
-  },
-  "github": {
-    "silent": true
   }
 }
