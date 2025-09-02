@@ -38,7 +38,7 @@ def get_data_processor():
     if data_processor is None:
         try:
             from data_processor import ArtisanDataProcessor
-            csv_path = os.path.join(backend_dir, '..', 'src', 'Artisans.csv')
+            csv_path = os.path.join(backend_dir, '..', 'public', 'Artisans.csv')
             data_processor = ArtisanDataProcessor(csv_path, max_artists=1000)
         except Exception as e:
             print(f"Error initializing data processor: {e}")

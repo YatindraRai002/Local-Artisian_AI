@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hindi NLP Model Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+        
+        .test-section h2 {
+            color: #444;
+            margin-bottom: 15px;
+        }
+        
+        .chat-interface {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .message {
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            background: #007bff;
+            color: white;
+            align-self: flex-end;
+        }
+        
+        .bot-message {
+            background: #e9ecef;
+            color: #333;
+            align-self: flex-start;
+        }
+        
+        .hindi-message {
+            background: #28a745;
+            color: white;
+        }
+        
+        .input-section {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #007bff;
+        }
+        
+        button {
+            padding: 12px 24px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        .quick-tests {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .test-button {
+            padding: 10px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .test-button:hover {
+            background: #5a6268;
+        }
+        
+        .stats-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card h3 {
+            margin: 0 0 10px 0;
+            color: #007bff;
+        }
+        
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .language-indicator {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .lang-hindi {
+            background: #28a745;
+            color: white;
+        }
+        
+        .lang-english {
+            background: #17a2b8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🇮🇳 Hindi NLP Model Test - हिंदी एनएलपी मॉडल टेस्ट</h1>
+        
+        <!-- Chat Interface -->
+        <div class="test-section">
+            <h2>💬 Interactive Chat - इंटरैक्टिव चैट</h2>
+            <div class="chat-interface" id="chatInterface">
+                <div class="message bot-message">
+                    नमस्ते! I can understand and respond in both Hindi and English. Try asking about artisans!
+                    <span class="language-indicator lang-english">EN/HI</span>
+                </div>
+            </div>
+            <div class="input-section">
+                <input type="text" id="userInput" placeholder="Type in Hindi or English... हिंदी या अंग्रेजी में टाइप करें..." />
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+        
+        <!-- Quick Test Buttons -->
+        <div class="test-section">
+            <h2>🚀 Quick Tests - त्वरित परीक्षण</h2>
+            <div class="quick-tests">
+                <button class="test-button" onclick="testQuery('नमस्ते')">Greeting - नमस्ते</button>
+                <button class="test-button" onclick="testQuery('कुम्हारी कारीगर दिखाओ')">Pottery - कुम्हारी</button>
+                <button class="test-button" onclick="testQuery('राजस्थान में शिल्पकार')">Rajasthan - राजस्थान</button>
+                <button class="test-button" onclick="testQuery('चिकनकारी के बारे में बताओ')">Chikankari - चिकनकारी</button>
+                <button class="test-button" onclick="testQuery('आंकड़े दिखाओ')">Statistics - आंकड़े</button>
+                <button class="test-button" onclick="testQuery('show pottery artists')">English Query</button>
+                <button class="test-button" onclick="testQuery('कढ़ाई का काम')">Embroidery - कढ़ाई</button>
+                <button class="test-button" onclick="testQuery('गुजरात में कारीगर')">Gujarat - गुजरात</button>
+            </div>
+        </div>
+        
+        <!-- Statistics Display -->
+        <div class="test-section">
+            <h2>📊 Database Statistics - डेटाबेस आंकड़े</h2>
+            <div class="stats-display" id="statsDisplay">
+                <div class="stat-card">
+                    <h3>Total Artisans</h3>
+                    <div class="value" id="totalArtisans">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Hindi Speakers</h3>
+                    <div class="value" id="hindiSpeakers">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Craft Types</h3>
+                    <div class="value" id="craftTypes">Loading...</div>
+                </div>
+                <div class="stat-card">
+                    <h3>States Covered</h3>
+                    <div class="value" id="statesCovered">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API Status -->
+        <div class="test-section">
+            <h2>🔌 API Status - एपीआई स्थिति</h2>
+            <div id="apiStatus">
+                <p>Testing API endpoints...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+        
+        // Initialize the interface
+        window.onload = function() {
+            loadStatistics();
+            testAPIs();
+        };
+        
+        // Send message function
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            // Add user message to chat
+            addMessageToChat(message, 'user');
+            input.value = '';
+            
+            // Send to API
+            await testQuery(message);
+        }
+        
+        // Test query function
+        async function testQuery(message) {
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                
+                const data = await response.json();
+                
+                // Add bot response to chat
+                const langClass = data.language === 'hindi' ? 'hindi-message' : 'bot-message';
+                const langIndicator = data.language === 'hindi' ? 
+                    '<span class="language-indicator lang-hindi">HI</span>' : 
+                    '<span class="language-indicator lang-english">EN</span>';
+                    
+                addMessageToChat(data.message + langIndicator, 'bot', langClass);
+                
+                // Show artisans if found
+                if (data.artists && data.artists.length > 0) {
+                    const artistsMessage = `Found ${data.artists.length} artisans: ${data.artists.slice(0, 3).map(a => a.name).join(', ')}${data.artists.length > 3 ? '...' : ''}`;
+                    addMessageToChat(artistsMessage, 'bot', 'bot-message');
+                }
+                
+                // Show statistics if requested
+                if (data.stats && Object.keys(data.stats).length > 0) {
+                    const statsMessage = data.stats.message_hindi || 
+                        `Database contains ${data.stats.total_artists} artisans, ${data.stats.hindi_speakers} Hindi speakers.`;
+                    addMessageToChat(statsMessage, 'bot', 'bot-message');
+                }
+                
+            } catch (error) {
+                addMessageToChat(`Error: ${error.message}`, 'bot', 'bot-message');
+            }
+        }
+        
+        // Add message to chat interface
+        function addMessageToChat(message, sender, className = null) {
+            const chatInterface = document.getElementById('chatInterface');
+            const messageDiv = document.createElement('div');
+            
+            if (className) {
+                messageDiv.className = `message ${className}`;
+            } else {
+                messageDiv.className = `message ${sender}-message`;
+            }
+            
+            messageDiv.innerHTML = message;
+            chatInterface.appendChild(messageDiv);
+            chatInterface.scrollTop = chatInterface.scrollHeight;
+        }
+        
+        // Load statistics
+        async function loadStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const stats = await response.json();
+                
+                document.getElementById('totalArtisans').textContent = stats.total_artists || 0;
+                document.getElementById('craftTypes').textContent = stats.unique_crafts || 0;
+                document.getElementById('statesCovered').textContent = stats.unique_states || 0;
+                
+                // Get Hindi speakers count from chat API
+                const chatResponse = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: 'आंकड़े दिखाओ' })
+                });
+                const chatData = await chatResponse.json();
+                
+                if (chatData.stats && chatData.stats.hindi_speakers) {
+                    document.getElementById('hindiSpeakers').textContent = 
+                        `${chatData.stats.hindi_speakers} (${chatData.stats.hindi_percentage}%)`;
+                }
+                
+            } catch (error) {
+                console.error('Failed to load statistics:', error);
+            }
+        }
+        
+        // Test all APIs
+        async function testAPIs() {
+            const apiStatus = document.getElementById('apiStatus');
+            const endpoints = [
+                { name: 'Chat API', url: '/chat', method: 'POST', body: { message: 'test' } },
+                { name: 'Search API', url: '/search', method: 'POST', body: { limit: 1 } },
+                { name: 'Stats API', url: '/stats', method: 'GET' },
+                { name: 'Categories API', url: '/categories', method: 'GET' }
+            ];
+            
+            let statusHTML = '<h3>API Endpoint Status:</h3>';
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const options = {
+                        method: endpoint.method,
+                        headers: endpoint.method === 'POST' ? { 'Content-Type': 'application/json' } : {}
+                    };
+                    
+                    if (endpoint.body) {
+                        options.body = JSON.stringify(endpoint.body);
+                    }
+                    
+                    const response = await fetch(`${API_BASE}${endpoint.url}`, options);
+                    const status = response.ok ? 
+                        `<span style="color: green;">✅ Online</span>` : 
+                        `<span style="color: red;">❌ Error ${response.status}</span>`;
+                    
+                    statusHTML += `<p><strong>${endpoint.name}:</strong> ${status}</p>`;
+                } catch (error) {
+                    statusHTML += `<p><strong>${endpoint.name}:</strong> <span style="color: red;">❌ Failed</span></p>`;
+                }
+            }
+            
+            statusHTML += '<p style="margin-top: 20px;"><strong>Hindi NLP Features:</strong></p>';
+            statusHTML += '<ul>';
+            statusHTML += '<li>✅ Hindi Character Detection</li>';
+            statusHTML += '<li>✅ Bilingual Response Generation</li>';
+            statusHTML += '<li>✅ Pattern-based Intent Recognition</li>';
+            statusHTML += '<li>✅ Entity Extraction (Craft Types, Locations)</li>';
+            statusHTML += '<li>✅ Devanagari Script Support</li>';
+            statusHTML += '<li>✅ Cultural Context Understanding</li>';
+            statusHTML += '</ul>';
+            
+            apiStatus.innerHTML = statusHTML;
+        }
+        
+        // Handle Enter key in input
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('userInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

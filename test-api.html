@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { margin: 5px; padding: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>API Connection Test</h1>
+    <p>Testing all API endpoints...</p>
+    
+    <button onclick="testSearch()">Test Search API</button>
+    <button onclick="testChat()">Test Chat API</button>
+    <button onclick="testStats()">Test Stats API</button>
+    <button onclick="testCategories()">Test Categories API</button>
+    <button onclick="testSimilar()">Test Similar API</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = '/api';
+        const resultsDiv = document.getElementById('results');
+        
+        function addResult(test, success, data) {
+            const div = document.createElement('div');
+            div.className = `result ${success ? 'success' : 'error'}`;
+            div.innerHTML = `
+                <h3>${test}</h3>
+                <p><strong>Status:</strong> ${success ? 'SUCCESS' : 'FAILED'}</p>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(div);
+        }
+        
+        async function testSearch() {
+            try {
+                const response = await fetch(`${API_BASE}/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ limit: 3 })
+                });
+                const data = await response.json();
+                addResult('Search API', response.ok, data);
+            } catch (error) {
+                addResult('Search API', false, { error: error.message });
+            }
+        }
+        
+        async function testChat() {
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: 'Hello, show me pottery artists' })
+                });
+                const data = await response.json();
+                addResult('Chat API', response.ok, data);
+            } catch (error) {
+                addResult('Chat API', false, { error: error.message });
+            }
+        }
+        
+        async function testStats() {
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                const data = await response.json();
+                addResult('Stats API', response.ok, data);
+            } catch (error) {
+                addResult('Stats API', false, { error: error.message });
+            }
+        }
+        
+        async function testCategories() {
+            try {
+                const response = await fetch(`${API_BASE}/categories`);
+                const data = await response.json();
+                addResult('Categories API', response.ok, data);
+            } catch (error) {
+                addResult('Categories API', false, { error: error.message });
+            }
+        }
+        
+        async function testSimilar() {
+            try {
+                // First get some artists to find a valid ID
+                const searchResponse = await fetch(`${API_BASE}/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ limit: 1 })
+                });
+                const searchData = await searchResponse.json();
+                
+                if (searchData.artists && searchData.artists.length > 0) {
+                    const artistId = searchData.artists[0].id;
+                    const response = await fetch(`${API_BASE}/similar?artistId=${artistId}&limit=3`);
+                    const data = await response.json();
+                    addResult('Similar API', response.ok, data);
+                } else {
+                    addResult('Similar API', false, { error: 'No artists found to test with' });
+                }
+            } catch (error) {
+                addResult('Similar API', false, { error: error.message });
+            }
+        }
+        
+        // Auto-run all tests
+        window.onload = function() {
+            setTimeout(testSearch, 500);
+            setTimeout(testChat, 1000);
+            setTimeout(testStats, 1500);
+            setTimeout(testCategories, 2000);
+            setTimeout(testSimilar, 2500);
+        };
+    </script>
+</body>
+</html>
