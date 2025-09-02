@@ -95,13 +95,14 @@ export const EnhancedAIAssistant: React.FC = () => {
     {
       id: '1',
       content: JSON.stringify({
-        message: "Hello! I'm your advanced Kala-Kaart AI assistant powered by transformers and LLMs. I can help you discover traditional Indian artists using real-time data from our comprehensive database. Ask me about specific crafts, locations, artist names, or get detailed analytics!",
+        message: "Hello! I'm your Kala-Kaart AI assistant powered by our live backend server with 50,000+ real artisan profiles! I can help you discover traditional Indian artists, search by crafts and locations, provide database statistics, and answer questions about our comprehensive database.",
         suggestions: [
-          "Find pottery artists in Rajasthan",
-          "Show me textile craftsmen",
+          "Show me pottery artists",
+          "Find artists in Rajasthan", 
           "Get database statistics",
-          "Search for artists named Kumar"
-        ]
+          "Browse textile crafts"
+        ],
+        llm_message: "🟢 Online mode active: Connected to live backend server with real-time AI responses and comprehensive artisan database."
       }),
       role: 'assistant',
       timestamp: new Date()
@@ -244,7 +245,7 @@ export const EnhancedAIAssistant: React.FC = () => {
         <div className="ml-auto flex items-center space-x-3">
           <div className="flex items-center bg-green-500/20 px-3 py-1 rounded-full">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-            <span className="text-xs font-semibold">Live & Ready</span>
+            <span className="text-xs font-semibold">Online & Connected</span>
           </div>
         </div>
       </div>
@@ -268,10 +269,10 @@ export const EnhancedAIAssistant: React.FC = () => {
           >
             <div
               className={cn(
-                "max-w-[85%] rounded-lg p-3",
+                "max-w-[85%] rounded-2xl p-4 shadow-md",
                 message.role === 'user'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-gray-100 text-gray-900'
+                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-orange-200'
+                  : 'bg-white text-gray-900 border border-gray-100 shadow-gray-100'
               )}
             >
               {message.role === 'assistant' ? (
@@ -374,25 +375,32 @@ export const EnhancedAIAssistant: React.FC = () => {
       </div>
 
       {/* Enhanced Input Area */}
-      <div className="border-t bg-gray-50 p-4">
-        <div className="flex items-center space-x-2">
-          <input
-            type="text"
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask about artists, crafts, locations, or analytics..."
-            className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-            disabled={isTyping}
-          />
+      <div className="border-t bg-gradient-to-r from-gray-50 to-orange-25 p-4">
+        <div className="flex items-center space-x-3">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Ask about artists, crafts, locations, or analytics..."
+              className="w-full p-4 pr-12 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 shadow-sm placeholder-gray-500 bg-white transition-all duration-200"
+              disabled={isTyping}
+            />
+            {inputMessage && (
+              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
+                <span className="text-xs font-medium">{inputMessage.length}/500</span>
+              </div>
+            )}
+          </div>
           <button
             onClick={handleSendMessage}
             disabled={!inputMessage.trim() || isTyping}
             className={cn(
-              "p-3 rounded-lg text-white transition-colors flex items-center",
+              "p-4 rounded-2xl text-white transition-all duration-200 flex items-center shadow-lg",
               !inputMessage.trim() || isTyping
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-orange-600 hover:bg-orange-700"
+                ? "bg-gray-300 cursor-not-allowed scale-95"
+                : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:scale-105 hover:shadow-xl"
             )}
           >
             {isTyping ? (
@@ -403,23 +411,35 @@ export const EnhancedAIAssistant: React.FC = () => {
           </button>
         </div>
         
-        {/* Quick Actions */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          {[
-            "Show database stats",
-            "Find pottery artists", 
-            "Artists in Maharashtra",
-            "Popular crafts"
-          ].map((quickAction, index) => (
-            <button
-              key={index}
-              onClick={() => handleSuggestionClick(quickAction)}
-              className="text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-full hover:bg-gray-300 transition-colors"
-              disabled={isTyping}
-            >
-              {quickAction}
-            </button>
-          ))}
+        {/* Enhanced Quick Actions */}
+        <div className="mt-4">
+          <div className="text-xs text-gray-500 font-medium mb-2">Quick suggestions:</div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { text: "Show database stats", icon: "📊" },
+              { text: "Find pottery artists", icon: "🏺" }, 
+              { text: "Artists in Rajasthan", icon: "🗺️" },
+              { text: "Browse textile crafts", icon: "🧵" }
+            ].map((quickAction, index) => (
+              <button
+                key={index}
+                onClick={() => handleSuggestionClick(quickAction.text)}
+                className="flex items-center text-xs bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-full hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700 transition-all duration-200 shadow-sm hover:shadow-md"
+                disabled={isTyping}
+              >
+                <span className="mr-1.5">{quickAction.icon}</span>
+                {quickAction.text}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Status indicator */}
+        <div className="mt-3 flex items-center justify-center">
+          <div className="flex items-center text-xs text-gray-500">
+            <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
+            Online mode - Connected to live server with 50,000+ artists
+          </div>
         </div>
       </div>
     </div>
