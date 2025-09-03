@@ -509,10 +509,10 @@ app.post('/chat', (req, res) => {
             return matches;
           }).slice(0, 10);
           
-          responseMessage = `मुझे ${artists.length} कारीगर मिले हैं क्लस्टरिंग मॉडल से।`;
+          responseMessage = `मुझे ${artists.length} कारीगर मिले हैं।`;
           intent = 'search_hindi';
         } else {
-          responseMessage = `मैं आपकी कैसे मदद कर सकता हूँ? हमारे क्लस्टरिंग मॉडल में ${artistsData.length} कारीगर हैं।`;
+          responseMessage = `मैं आपकी कैसे मदद कर सकता हूँ? हमारे डेटाबेस में ${artistsData.length} कारीगर हैं।`;
         }
       }
     } else {
@@ -601,11 +601,11 @@ app.post('/chat', (req, res) => {
           }).slice(0, 10);
           
           if (searchFilters.state && searchFilters.craft_type) {
-            responseMessage = `Found ${artists.length} ${searchFilters.craft_type} artists in ${searchFilters.state.charAt(0).toUpperCase() + searchFilters.state.slice(1)} from clustering model.`;
+            responseMessage = `Found ${artists.length} ${searchFilters.craft_type} artists in ${searchFilters.state.charAt(0).toUpperCase() + searchFilters.state.slice(1)}.`;
           } else if (searchFilters.state) {
-            responseMessage = `Found ${artists.length} artists in ${searchFilters.state.charAt(0).toUpperCase() + searchFilters.state.slice(1)} from clustering model.`;
+            responseMessage = `Found ${artists.length} artists in ${searchFilters.state.charAt(0).toUpperCase() + searchFilters.state.slice(1)}.`;
           } else if (searchFilters.craft_type) {
-            responseMessage = `Found ${artists.length} ${searchFilters.craft_type} artists from clustering model.`;
+            responseMessage = `Found ${artists.length} ${searchFilters.craft_type} artists.`;
           }
           intent = 'search_english';
         } else {
@@ -618,10 +618,10 @@ app.post('/chat', (req, res) => {
           
           if (partialMatches.length > 0) {
             artists = partialMatches;
-            responseMessage = `Found ${artists.length} artists matching your query from clustering model.`;
+            responseMessage = `Found ${artists.length} artists matching your query.`;
             intent = 'partial_search';
           } else {
-            responseMessage = `Hello! I have ${artistsData.length} artisans from our clustering model. You can search by craft type, location, or ask for statistics in Hindi or English.`;
+            responseMessage = `Hello! I have ${artistsData.length} artisans in our database. You can search by craft type, location, or ask for statistics in Hindi or English.`;
           }
         }
       }
@@ -648,8 +648,8 @@ app.post('/chat', (req, res) => {
       },
       message: responseMessage,
       llm_message: isHindi ? 
-        'क्लस्टरिंग मॉडल के साथ उन्नत खोज - बहुभाषी सहायता' :
-        'Enhanced Search with Clustering Model - Multilingual Support',
+        'उन्नत खोज - बहुभाषी सहायता' :
+        'Enhanced Search - Multilingual Support',
       artists,
       clustering_info: clusterInfo,
       suggestions,
