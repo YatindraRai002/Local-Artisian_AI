@@ -1,9 +1,8 @@
 import { Artist } from '../types';
 import { parseCSVToArtists } from '../utils/csvParser';
 
-const API_BASE_URL = import.meta.env.PROD 
-  ? '/api' 
-  : 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.PROD ? '/api' : 'http://localhost:8000');
 
 let artistsData: Artist[] = [];
 let isLoading = false;
@@ -97,7 +96,7 @@ export const apiService = {
 
   async getSimilarArtists(artistId: string, limit: number = 5) {
     try {
-      const response = await fetch(`${API_BASE_URL}/similar?artistId=${artistId}&limit=${limit}`);
+      const response = await fetch(`${API_BASE_URL}/artists/similar/${artistId}?limit=${limit}`);
       if (!response.ok) throw new Error('Failed to get similar artists');
       return response.json();
     } catch (error) {

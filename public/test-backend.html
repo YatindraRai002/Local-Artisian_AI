@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Backend Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        button { padding: 10px 20px; margin: 5px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Backend Connection Test</h1>
+    
+    <button onclick="testChat()">Test Chat API</button>
+    <button onclick="testSearch()">Test Search API</button>
+    <button onclick="testStats()">Test Stats API</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        const results = document.getElementById('results');
+
+        async function testChat() {
+            results.innerHTML = '<div class="status">Testing Chat API...</div>';
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: 'Show me artists from Bihar',
+                        conversation_history: []
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML = `
+                        <div class="status success">✅ Chat API Working!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    results.innerHTML = `<div class="status error">❌ Chat API failed: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="status error">❌ Chat API error: ${error.message}</div>`;
+            }
+        }
+
+        async function testSearch() {
+            results.innerHTML = '<div class="status">Testing Search API...</div>';
+            try {
+                const response = await fetch(`${API_BASE}/search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ state: 'Bihar', limit: 3 })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML = `
+                        <div class="status success">✅ Search API Working!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    results.innerHTML = `<div class="status error">❌ Search API failed: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="status error">❌ Search API error: ${error.message}</div>`;
+            }
+        }
+
+        async function testStats() {
+            results.innerHTML = '<div class="status">Testing Stats API...</div>';
+            try {
+                const response = await fetch(`${API_BASE}/stats`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    results.innerHTML = `
+                        <div class="status success">✅ Stats API Working!</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    results.innerHTML = `<div class="status error">❌ Stats API failed: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="status error">❌ Stats API error: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-test on load
+        setTimeout(testChat, 1000);
+    </script>
+</body>
+</html>
