@@ -172,27 +172,39 @@ export default function handler(req, res) {
         
         // Hindi state mapping
         const hindiStateMap = {
-          'राजस्थान': 'rajasthan',
-          'गुजरात': 'gujarat',
-          'उत्तर प्रदेश': 'uttar pradesh',
-          'मध्य प्रदेश': 'madhya pradesh',
-          'महाराष्ट्र': 'maharashtra',
-          'पश्चिम बंगाल': 'west bengal',
-          'तमिल नाडु': 'tamil nadu',
-          'कर्नाटक': 'karnataka',
-          'केरल': 'kerala',
+          'आंध्र प्रदेश': 'andhra pradesh',
+          'असम': 'assam',
           'बिहार': 'bihar',
-          'पंजाब': 'punjab',
+          'छत्तीसगढ़': 'chhattisgarh',
+          'गोवा': 'goa',
+          'गुजरात': 'gujarat',
           'हरियाणा': 'haryana',
           'हिमाचल प्रदेश': 'himachal pradesh',
           'जम्मू कश्मीर': 'jammu kashmir',
-          'असम': 'assam',
+          'झारखंड': 'jharkhand',
+          'कर्नाटक': 'karnataka',
+          'केरल': 'kerala',
+          'मध्य प्रदेश': 'madhya pradesh',
+          'महाराष्ट्र': 'maharashtra',
+          'मणिपुर': 'manipur',
+          'मेघालय': 'meghalaya',
+          'मिजोरम': 'mizoram',
+          'नागालैंड': 'nagaland',
           'ओडिशा': 'odisha',
           'उड़ीसा': 'odisha',
-          'झारखंड': 'jharkhand',
-          'छत्तीसगढ़': 'chhattisgarh',
+          'पंजाब': 'punjab',
+          'राजस्थान': 'rajasthan',
+          'सिक्किम': 'sikkim',
+          'तमिल नाडु': 'tamil nadu',
           'तेलंगाना': 'telangana',
-          'आंध्र प्रदेश': 'andhra pradesh'
+          'त्रिपुरा': 'tripura',
+          'उत्तर प्रदेश': 'uttar pradesh',
+          'उत्तराखंड': 'uttarakhand',
+          'पश्चिम बंगाल': 'west bengal',
+          'लद्दाख': 'ladakh',
+          'दिल्ली': 'delhi',
+          'चंडीगढ़': 'chandigarh',
+          'पुडुचेरी': 'puducherry'
         };
         
         // Check for Hindi state names
@@ -281,9 +293,29 @@ export default function handler(req, res) {
         } else if (hindiPatterns.search_artisan.test(message)) {
           intent = 'search_artisan';
           artists = artistsData.slice(0, 10);
-          responseMessage = `हमारे डेटाबेस में ${artistsData.length} कारीगर हैं। यहाँ कुछ हैं:`;
+          responseMessage = `हमारे क्लस्टरिंग मॉडल डेटाबेस में ${artistsData.length} कारीगर हैं। यहाँ कुछ हैं:`;
         } else {
-          responseMessage = 'मैं आपकी कैसे मदद कर सकता हूँ? आप कारीगरों के बारे में हिंदी या अंग्रेजी में पूछ सकते हैं।';
+          // Enhanced Hindi fallback: Try partial matching 
+          const hindiWords = message.split(' ').filter(word => word.length > 1);
+          const partialMatches = artistsData.filter(artist => {
+            const artistText = `${artist.location.state} ${artist.location.district} ${artist.craft_type} ${artist.name}`.toLowerCase();
+            return hindiWords.some(word => {
+              // Check if Hindi word matches any part of artist data
+              return artistText.includes(word.toLowerCase()) ||
+                     // Check against Hindi-English mappings
+                     Object.entries({...hindiStateMap, ...hindiCraftMap}).some(([hindi, english]) => 
+                       word.includes(hindi) && artistText.includes(english.toLowerCase())
+                     );
+            });
+          }).slice(0, 10);
+          
+          if (partialMatches.length > 0) {
+            artists = partialMatches;
+            intent = 'partial_search_hindi';
+            responseMessage = `आपकी खोज के लिए मुझे ${artists.length} कारीगर मिले हैं क्लस्टरिंग मॉडल से।`;
+          } else {
+            responseMessage = `मैं आपकी कैसे मदद कर सकता हूँ? हमारे क्लस्टरिंग मॉडल में ${artistsData.length} कारीगर हैं। आप कारीगरों के बारे में हिंदी या अंग्रेजी में पूछ सकते हैं।`;
+          }
         }
       }
     } else {
@@ -295,7 +327,7 @@ export default function handler(req, res) {
         // Use comprehensive search algorithm instead of hardcoded patterns
         const searchFilters = {};
         
-        // Extract state from message using comprehensive list with variations
+        // Extract state from message using comprehensive list with exact CSV data variations
         const stateMap = {
           'andhra pradesh': ['andhra pradesh', 'ap', 'andhra'],
           'assam': ['assam'],
@@ -305,7 +337,7 @@ export default function handler(req, res) {
           'gujarat': ['gujarat'],
           'haryana': ['haryana'],
           'himachal pradesh': ['himachal pradesh', 'himachal', 'hp', 'h.p.'],
-          'jammu kashmir': ['jammu kashmir', 'jammu & kashmir', 'kashmir', 'j&k', 'jk'],
+          'jammu & kashmir': ['jammu kashmir', 'jammu & kashmir', 'jammu and kashmir', 'kashmir', 'j&k', 'jk'],
           'jharkhand': ['jharkhand'],
           'karnataka': ['karnataka', 'mysore'],
           'kerala': ['kerala', 'kerela'],
@@ -403,19 +435,22 @@ export default function handler(req, res) {
             if (searchFilters.state) {
               const artistState = artist.location.state.toLowerCase().trim();
               const searchState = searchFilters.state.toLowerCase().trim();
-              // Flexible matching for state names
+              // Enhanced flexible matching for state names from clustering data
               matches = matches && (
                 artistState.includes(searchState) || 
                 artistState === searchState ||
                 searchState.includes(artistState) ||
-                // Handle common variations
+                // Handle exact CSV variations
+                (searchState === 'jammu & kashmir' && (artistState.includes('jammu') || artistState.includes('kashmir') || artistState === 'jammu & kashmir')) ||
                 (searchState === 'uttar pradesh' && artistState.includes('uttar pradesh')) ||
                 (searchState === 'madhya pradesh' && artistState.includes('madhya pradesh')) ||
                 (searchState === 'himachal pradesh' && artistState.includes('himachal')) ||
-                (searchState === 'jammu kashmir' && (artistState.includes('jammu') || artistState.includes('kashmir'))) ||
                 (searchState === 'tamil nadu' && artistState.includes('tamil')) ||
                 (searchState === 'west bengal' && artistState.includes('bengal')) ||
-                (searchState === 'odisha' && artistState.includes('orissa'))
+                (searchState === 'odisha' && (artistState.includes('orissa') || artistState.includes('odisha'))) ||
+                // Normalize common state name differences
+                artistState.replace(/&/g, 'and').includes(searchState.replace(/&/g, 'and')) ||
+                searchState.replace(/&/g, 'and').includes(artistState.replace(/&/g, 'and'))
               );
             }
             
@@ -451,8 +486,21 @@ export default function handler(req, res) {
             responseMessage = `Found ${artists.length} ${foundCraft} artists from our real database.`;
           }
         } else {
-          // Default response if no specific search terms found
-          responseMessage = 'Hello! I can help you find traditional Indian artists. You can search by craft type, location, or ask for database statistics in Hindi or English.';
+          // Enhanced fallback: Try partial matching with clustering data
+          const partialMatches = artistsData.filter(artist => {
+            const artistText = `${artist.location.state} ${artist.location.district} ${artist.craft_type} ${artist.name}`.toLowerCase();
+            const words = lowerMessage.split(' ').filter(word => word.length > 2);
+            return words.some(word => artistText.includes(word));
+          }).slice(0, 10);
+          
+          if (partialMatches.length > 0) {
+            artists = partialMatches;
+            intent = 'partial_search';
+            responseMessage = `Found ${artists.length} artists matching your query from the clustering model database.`;
+          } else {
+            // Default response with clustering data info
+            responseMessage = `Hello! I have ${artistsData.length} artisans from our clustering model. You can search by craft type, location, or ask for database statistics in Hindi or English.`;
+          }
         }
       }
     }
@@ -462,25 +510,44 @@ export default function handler(req, res) {
       a.languages.some(lang => lang.toLowerCase().includes('hindi'))
     ).length;
     
+    // Extract unique cluster information from results
+    const clusterInfo = artists.length > 0 ? {
+      cluster_codes: [...new Set(artists.map(a => a.cluster_code))],
+      cluster_count: new Set(artists.map(a => a.cluster_code)).size,
+      districts_covered: [...new Set(artists.map(a => a.location.district))],
+      crafts_found: [...new Set(artists.map(a => a.craft_type))]
+    } : {};
+
     const response = {
       intent,
-      entities: {},
+      entities: {
+        state: Object.keys(searchFilters || {}).includes('state') ? searchFilters.state : null,
+        craft: Object.keys(searchFilters || {}).includes('craft_type') ? searchFilters.craft_type : null
+      },
       message: responseMessage,
       llm_message: isHindi ? 
-        'उन्नत हिंदी NLP प्रसंस्करण के साथ बहुभाषी सहायता - वास्तविक डेटा कनेक्शन' :
-        'Enhanced Hindi NLP processing with multilingual support - Real Data Connection',
+        'क्लस्टरिंग मॉडल के साथ उन्नत खोज - बहुभाषी सहायता' :
+        'Enhanced Search with Clustering Model - Multilingual Support',
       artists,
+      clustering_info: clusterInfo,
       suggestions,
       stats: intent === 'get_stats' ? {
         total_artists: artistsData.length,
         unique_crafts: new Set(artistsData.map(a => a.craft_type)).size,
         unique_states: new Set(artistsData.map(a => a.location.state)).size,
         unique_districts: new Set(artistsData.map(a => a.location.district)).size,
+        unique_clusters: new Set(artistsData.map(a => a.cluster_code)).size,
         hindi_speakers: hindiSpeakers,
         hindi_percentage: Math.round((hindiSpeakers / artistsData.length) * 100),
-        message_hindi: `हमारे वास्तविक डेटाबेस में ${artistsData.length} कारीगर हैं, जिनमें से ${hindiSpeakers} हिंदी बोलते हैं।`,
-        language_support: isHindi ? 'हिंदी और अंग्रेजी दोनों - वास्तविक डेटा' : 'Hindi and English both supported - Real Data'
+        message_hindi: `हमारे क्लस्टरिंग मॉडल डेटाबेस में ${artistsData.length} कारीगर हैं, जिनमें से ${hindiSpeakers} हिंदी बोलते हैं।`,
+        language_support: isHindi ? 'हिंदी और अंग्रेजी दोनों - क्लस्टरिंग मॉडल डेटा' : 'Hindi and English both supported - Clustering Model Data'
       } : {},
+      search_query: {
+        original_message: message,
+        detected_language: isHindi ? 'hindi' : 'english',
+        search_filters: searchFilters || {},
+        results_count: artists.length
+      },
       language: isHindi ? 'hindi' : 'english',
       status: 'online'
     };
