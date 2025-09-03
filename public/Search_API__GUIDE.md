@@ -148,4 +148,3 @@ Content-Type: application/json
 6. **Pagination Support**: Efficient browsing of large result sets
 7. **Flexible Sorting**: Multiple sort options
 8. **Error Tolerance**: Graceful handling of edge cases
-
