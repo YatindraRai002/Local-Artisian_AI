@@ -1,4 +1,4 @@
-// Comprehensive test of the chatbot functionality
+
 async function testFullChatbot() {
   console.log('🤖 Testing Full Chatbot Functionality\n');
   
