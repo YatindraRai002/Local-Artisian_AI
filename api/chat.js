@@ -92,7 +92,7 @@ function loadArtistsData() {
     }
     
     dataLoaded = true;
-    console.log(`Successfully loaded ${artistsData.length} artists from clustering model`);
+    console.log(`Successfully loaded ${artistsData.length} artists from dataset`);
   } catch (error) {
     console.error('Error loading CSV:', error);
     artistsData = [];
@@ -293,7 +293,7 @@ export default function handler(req, res) {
         } else if (hindiPatterns.search_artisan.test(message)) {
           intent = 'search_artisan';
           artists = artistsData.slice(0, 10);
-          responseMessage = `हमारे क्लस्टरिंग मॉडल डेटाबेस में ${artistsData.length} कारीगर हैं। यहाँ कुछ हैं:`;
+          responseMessage = `हमारे डेटाबेस में ${artistsData.length} कारीगर हैं। यहाँ कुछ हैं:`;
         } else {
           // Enhanced Hindi fallback: Try partial matching 
           const hindiWords = message.split(' ').filter(word => word.length > 1);
@@ -312,9 +312,9 @@ export default function handler(req, res) {
           if (partialMatches.length > 0) {
             artists = partialMatches;
             intent = 'partial_search_hindi';
-            responseMessage = `आपकी खोज के लिए मुझे ${artists.length} कारीगर मिले हैं क्लस्टरिंग मॉडल से।`;
+            responseMessage = `आपकी खोज के लिए मुझे ${artists.length} कारीगर मिले हैं।`;
           } else {
-            responseMessage = `मैं आपकी कैसे मदद कर सकता हूँ? हमारे क्लस्टरिंग मॉडल में ${artistsData.length} कारीगर हैं। आप कारीगरों के बारे में हिंदी या अंग्रेजी में पूछ सकते हैं।`;
+            responseMessage = `मैं आपकी कैसे मदद कर सकता हूँ? हमारे डेटाबेस में ${artistsData.length} कारीगर हैं। आप कारीगरों के बारे में हिंदी या अंग्रेजी में पूछ सकते हैं।`;
           }
         }
       }
@@ -496,10 +496,10 @@ export default function handler(req, res) {
           if (partialMatches.length > 0) {
             artists = partialMatches;
             intent = 'partial_search';
-            responseMessage = `Found ${artists.length} artists matching your query from the clustering model database.`;
+            responseMessage = `Found ${artists.length} artists matching your query.`;
           } else {
             // Default response with clustering data info
-            responseMessage = `Hello! I have ${artistsData.length} artisans from our clustering model. You can search by craft type, location, or ask for database statistics in Hindi or English.`;
+            responseMessage = `Hello! I have ${artistsData.length} artisans in our database. You can search by craft type, location, or ask for database statistics in Hindi or English.`;
           }
         }
       }
@@ -526,8 +526,8 @@ export default function handler(req, res) {
       },
       message: responseMessage,
       llm_message: isHindi ? 
-        'क्लस्टरिंग मॉडल के साथ उन्नत खोज - बहुभाषी सहायता' :
-        'Enhanced Search with Clustering Model - Multilingual Support',
+        'उन्नत खोज - बहुभाषी सहायता' :
+        'Enhanced Search - Multilingual Support',
       artists,
       clustering_info: clusterInfo,
       suggestions,
@@ -540,7 +540,7 @@ export default function handler(req, res) {
         hindi_speakers: hindiSpeakers,
         hindi_percentage: Math.round((hindiSpeakers / artistsData.length) * 100),
         message_hindi: `हमारे क्लस्टरिंग मॉडल डेटाबेस में ${artistsData.length} कारीगर हैं, जिनमें से ${hindiSpeakers} हिंदी बोलते हैं।`,
-        language_support: isHindi ? 'हिंदी और अंग्रेजी दोनों - क्लस्टरिंग मॉडल डेटा' : 'Hindi and English both supported - Clustering Model Data'
+        language_support: isHindi ? 'हिंदी और अंग्रेजी दोनों समर्थित' : 'Hindi and English both supported'
       } : {},
       search_query: {
         original_message: message,
