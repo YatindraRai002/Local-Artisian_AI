@@ -52,7 +52,7 @@ async function testFullChatbot() {
       
       const data = await response.json();
       
-      // Validate response
+      
       const hasMessage = !!data.message;
       const hasLanguage = !!data.language;
       const hasIntent = !!data.intent;
