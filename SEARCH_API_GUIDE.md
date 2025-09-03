@@ -60,15 +60,8 @@ const searchFilters = {
   // Craft filters
   craft_type: "pottery",       // Craft type with fuzzy matching
   
-  // Personal filters
-  name: "Ravi",               // Artist name (partial matching)
-  gender: "Female",            // Male, Female, Other
-  language: "Hindi",           // Spoken languages
-  
-  // Age filters
-  age_min: 25,                // Minimum age
-  age_max: 45,                // Maximum age
-  
+ 
+
   // Contact filters
   phone_available: true,       // Boolean for phone availability
   
@@ -130,19 +123,7 @@ const searchFilters = {
 - **✅ Comprehensive metadata provided**
 - **✅ Error handling with suggestions**
 
-## 📡 API Endpoints
 
-### Search Artists
-```
-POST http://localhost:8000/search
-Content-Type: application/json
-
-{
-  "state": "Tamil Nadu",
-  "craft_type": "pottery",
-  "limit": 10
-}
-```
 
 ### Chat with AI Assistant  
 ```
@@ -155,10 +136,7 @@ Content-Type: application/json
 }
 ```
 
-### Get Statistics
-```
-GET http://localhost:8000/stats
-```
+
 
 ## 🎯 Key Features
 
@@ -171,4 +149,3 @@ GET http://localhost:8000/stats
 7. **Flexible Sorting**: Multiple sort options
 8. **Error Tolerance**: Graceful handling of edge cases
 
-The search functionality is now fully operational for **every state listed** in India! 🇮🇳
