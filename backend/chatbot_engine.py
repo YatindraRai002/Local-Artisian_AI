@@ -193,7 +193,7 @@ class EnhancedMultilingualArtisanChatbot:
         
         self.conversation_history.append(user_message)
         
-        # Use RAG model if available
+        
         if self.use_rag and self.rag_model:
             try:
                 rag_result = self.rag_model.query(user_message, {'history': self.conversation_history})

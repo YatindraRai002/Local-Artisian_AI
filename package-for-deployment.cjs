@@ -13,7 +13,7 @@ try {
     process.exit(1);
 }
 
-// Copy important files to dist for complete deployment package
+
 const filesToCopy = [
     'vercel.json',
     'package.json',
