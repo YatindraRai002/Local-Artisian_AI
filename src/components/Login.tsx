@@ -138,10 +138,10 @@ export const Login: React.FC = () => {
             <button
               onClick={() => setUserType('user')}
               className={cn(
-                "p-4 rounded-xl border-2 transition-all duration-200 text-center",
+                "p-4 rounded-xl border-2 transition-all duration-200 text-center transform hover:-translate-y-1 hover:shadow-lg",
                 userType === 'user'
-                  ? "border-orange-500 bg-orange-50 text-orange-700"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-orange-300"
+                  ? "border-blue-500 bg-gradient-to-br from-blue-50 to-cyan-50 text-blue-700 shadow-md"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-blue-300 hover:bg-blue-50"
               )}
             >
               <User className="w-6 h-6 mx-auto mb-2" />
@@ -151,10 +151,10 @@ export const Login: React.FC = () => {
             <button
               onClick={() => setUserType('artist')}
               className={cn(
-                "p-4 rounded-xl border-2 transition-all duration-200 text-center",
+                "p-4 rounded-xl border-2 transition-all duration-200 text-center transform hover:-translate-y-1 hover:shadow-lg",
                 userType === 'artist'
-                  ? "border-purple-500 bg-purple-50 text-purple-700"
-                  : "border-gray-200 bg-white text-gray-600 hover:border-purple-300"
+                  ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 text-purple-700 shadow-md"
+                  : "border-gray-200 bg-white text-gray-600 hover:border-purple-300 hover:bg-purple-50"
               )}
             >
               <Palette className="w-6 h-6 mx-auto mb-2" />
@@ -220,11 +220,11 @@ export const Login: React.FC = () => {
               type="submit"
               disabled={loading}
               className={cn(
-                "w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center",
+                "w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 flex items-center justify-center transform hover:-translate-y-1",
                 userType === 'user'
-                  ? "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600"
-                  : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600",
-                loading ? "opacity-75 cursor-not-allowed" : "hover:shadow-lg"
+                  ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg hover:shadow-xl"
+                  : "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-lg hover:shadow-xl",
+                loading ? "opacity-75 cursor-not-allowed transform-none" : ""
               )}
             >
               {loading ? (
@@ -250,7 +250,7 @@ export const Login: React.FC = () => {
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="mt-3 w-full py-3 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-3 w-full py-3 px-4 border border-gray-300 rounded-lg font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-1 hover:shadow-md"
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
