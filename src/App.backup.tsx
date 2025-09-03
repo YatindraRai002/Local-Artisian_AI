@@ -16,6 +16,11 @@ function App() {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedState, setSelectedState] = useState('');
+
+  const stateOptions = [
+    'andhra pradesh','assam','bihar','chhattisgarh','goa','gujarat','haryana','himachal pradesh','jammu kashmir','jharkhand','karnataka','kerala','madhya pradesh','maharashtra','manipur','meghalaya','mizoram','nagaland','odisha','punjab','rajasthan','sikkim','tamil nadu','telangana','tripura','uttar pradesh','uttarakhand','west bengal','ladakh','delhi','chandigarh','puducherry'
+  ];
 
   const toggleChat = () => setIsChatOpen(!isChatOpen);
 
@@ -24,24 +29,20 @@ function App() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        
         // Load artists and stats in parallel
         const [artistsResult, statsResult] = await Promise.all([
           apiService.searchArtists({ limit: 1000 }),
           apiService.getStats()
         ]);
-
         setArtists(artistsResult.artists);
         setStats({
           totalArtists: statsResult.total_artists || 0,
           totalCrafts: statsResult.unique_crafts || 0,
           totalStates: statsResult.unique_states || 0,
         });
-        
       } catch (err) {
         console.error('Failed to load data:', err);
         setError('Failed to load data from server');
-        
         // Fallback to local data if available
         const localArtists = getArtistsData();
         setArtists(localArtists);
@@ -54,25 +55,26 @@ function App() {
         setIsLoading(false);
       }
     };
-
     loadData();
   }, []);
 
-  // Handle search
+  // Handle search and state filter
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredArtists(artists.slice(0, 12)); // Show first 12
-    } else {
-      const filtered = artists.filter(artist =>
+    let filtered = artists;
+    if (selectedState) {
+      filtered = filtered.filter(artist => artist.location.state.toLowerCase() === selectedState.toLowerCase());
+    }
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(artist =>
         artist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         artist.craft_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
         artist.location.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
         artist.location.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
         artist.location.village.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredArtists(filtered.slice(0, 20)); // Show more results for search
     }
-  }, [searchQuery, artists]);
+    setFilteredArtists(filtered.slice(0, selectedState || searchQuery ? 20 : 12));
+  }, [searchQuery, artists, selectedState]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
@@ -90,15 +92,25 @@ function App() {
             </div>
             
             <div className="flex items-center space-x-4">
-              <div className="relative">
+              <div className="relative flex items-center space-x-2">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
                   placeholder="Search artists, crafts, locations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="pl-10 pr-4 py-2 w-64 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
+                <select
+                  value={selectedState}
+                  onChange={e => setSelectedState(e.target.value)}
+                  className="py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-gray-700"
+                >
+                  <option value="">All States</option>
+                  {stateOptions.map(state => (
+                    <option key={state} value={state}>{state.charAt(0).toUpperCase() + state.slice(1)}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
