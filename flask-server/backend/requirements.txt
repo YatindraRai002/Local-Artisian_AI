@@ -24,9 +24,8 @@ sacremoses==0.1.1
 sentencepiece==0.1.99
 
 # Multilingual support
-polyglot==16.7.4
-pycld2==0.41
 langdetect==1.0.9
+langid==1.1.6
 
 # Vector databases
 chromadb==0.4.18
