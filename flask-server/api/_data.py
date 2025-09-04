@@ -1,8 +1,8 @@
 import os
 import csv
-from flask import Flask, jsonify
 
-app = Flask(__name__)
+# Cache loaded data
+_artists_cache = None
 
 def format_phone_number(phone):
     if phone and "E+" in phone:
@@ -16,15 +16,16 @@ def format_phone_number(phone):
             return phone
     return phone or ""
 
+def _load_csv():
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(current_dir, "..", "public", "Artisans.csv")
 
-def load_csv_data():
+    artists_data = []
+
     try:
-        csv_path = os.path.join(os.getcwd(), "src", "Artisans.csv")
-        artists_data = []
-
         with open(csv_path, mode="r", encoding="utf-8") as f:
             reader = csv.reader(f)
-            headers = next(reader, None)  # first row is header
+            headers = next(reader, None)
 
             for row in reader:
                 if not row or len(row) < len(headers):
@@ -51,19 +52,16 @@ def load_csv_data():
                         "cluster_code": row[13] if len(row) > 13 else ""
                     }
                     artists_data.append(artist)
-                except Exception:
+                except Exception as e:
+                    print(f"Error parsing row: {e}")
                     continue
+    except Exception as e:
+        print(f"Error reading CSV: {e}")
 
-        return artists_data
-    except Exception:
-        return []
+    return artists_data
 
-
-@app.route("/artists", methods=["GET"])
-def get_artists():
-    data = load_csv_data()
-    return jsonify(data)
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
+def load_csv_data():
+    global _artists_cache
+    if _artists_cache is None:
+        _artists_cache = _load_csv()
+    return _artists_cache
