@@ -1,25 +1,15 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from mangum import Mangum
-import sys
-import os
+import sys, os
 
-# Add the backend directory to Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+# Add backend folder to Python path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.join(current_dir, "..", "backend")
+sys.path.append(backend_dir)
 
-from final_server import app
+from flask import Flask
+from flask_cors import CORS
 
-# Configure for serverless deployment
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# now this works because backend is on the path
+import final_server  
 
-# Create handler for Vercel
-handler = Mangum(app, lifespan="off")
-
-def handler_func(event, context):
-    return handler(event, context)
+app = Flask(__name__)
+CORS(app)
