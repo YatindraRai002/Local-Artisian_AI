@@ -1,14 +1,16 @@
-import sys, os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import sys, os
 
-# Add backend folder to Python path
+# Set Python path so backend modules are found
 current_dir = os.path.dirname(os.path.abspath(__file__))
-backend_dir = os.path.join(current_dir, "..", "backend")
-sys.path.append(backend_dir)
+project_root = os.path.abspath(os.path.join(current_dir, ".."))
+sys.path.append(project_root)
 
-import data_processor
-import lightweight_chatbot  
+from backend.data_processor import ArtisanDataProcessor
+from backend.lightweight_chatbot import LightweightEnhancedChatbot
+
+backend_dir = os.path.join(project_root, "backend")
 
 app = Flask(__name__)
 CORS(app)
@@ -20,14 +22,12 @@ def get_data_processor():
     global processor_instance
     if processor_instance is None:
         try:
-            from data_processor import ArtisanDataProcessor
-            csv_path = os.path.join(backend_dir, '..', 'public', 'Artisans.csv')
+            csv_path = os.path.join(project_root, 'public', 'Artisans.csv')
             processor_instance = ArtisanDataProcessor(csv_path, max_artists=1000)
         except Exception as e:
             print(f"Error initializing data processor: {e}")
             return None
     return processor_instance
-
 
 @app.route("/", methods=["POST"])
 def search_artists():
@@ -39,16 +39,10 @@ def search_artists():
         filters = request.json or {}
         limit = filters.get("limit", 20)
 
-        # Build filter dict (exclude None + limit)
         filter_dict = {k: v for k, v in filters.items() if v is not None and k != "limit"}
-
         results = processor.search_artists(filter_dict)
-
-        # Apply limit
         limited_results = results[:limit]
 
-        # Transform for frontend
-        from lightweight_chatbot import LightweightEnhancedChatbot
         bot = LightweightEnhancedChatbot(None)
         transformed_artists = bot.transform_artists_for_frontend(limited_results)
 
@@ -64,3 +58,6 @@ def search_artists():
 
     except Exception as e:
         return jsonify({"error": f"Search error: {str(e)}"}), 500
+
+if __name__ == "__main__":
+    app.run(debug=True, port=8000)
