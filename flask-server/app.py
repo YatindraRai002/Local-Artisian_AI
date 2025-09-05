@@ -1,98 +1,99 @@
-from flask import Flask, request, jsonify
-import logging
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 import os
-
-# Import helpers
-from helpers.chat_utils import handle_chat
-from helpers.search_utils import apply_filters
-from helpers.stats_utils import get_stats
-from helpers.similar_utils import find_similar
-
-# Import RAG model
-from backend.rag_nlp_model import MultilingualRAGModel
-
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Initialize Flask app
+import pandas as pd
 app = Flask(__name__)
+CORS(app, origins=["http://localhost:3000", "http://localhost:5173"])
 
-# Initialize RAG model
-model_path = "trained_rag_model"
-use_gpu = False  # Change to True if GPU is available
-rag_model = MultilingualRAGModel(use_gpu=use_gpu)
+data = None
 
-# Load trained model if exists
-if os.path.exists(model_path):
-    rag_model.load_model(model_path)
-    logger.info("Loaded trained RAG model")
-else:
-    logger.warning("Trained RAG model not found. Please train first.")
-
-# -----------------------
-# RAG model routes
-# -----------------------
-@app.route("/")
-def home():
-    return jsonify({"message": "Kala-Kaart AI Chatbot API is running."})
-
-@app.route("/query", methods=["POST"])
-def query():
-    data = request.json
-    user_input = data.get("query", "")
-
-    if not user_input:
-        return jsonify({"error": "Query not provided"}), 400
-
+def load_data():
+    global data
+    csv_path = os.getenv("CSV_PATH", "../src/Artisans.csv")
     try:
-        result = rag_model.query(user_input)
-        return jsonify(result)
+        data = pd.read_csv(csv_path)
+        data = data.dropna(subset=['name', 'craft_type', 'state', 'district'])
+        data['languages_spoken'] = data['languages_spoken'].fillna('')
+        data['contact_phone'] = data['contact_phone'].astype(str)
+        print(f"Loaded {len(data)} artisan records")
     except Exception as e:
-        logger.error(f"Error processing query: {e}")
-        return jsonify({"error": "Failed to process query"}), 500
+        print(f"Error loading data: {e}")
+        data = pd.DataFrame()
 
-@app.route("/train", methods=["POST"])
-def train():
-    """
-    Endpoint to retrain the model from multilingual_training_data.json
-    """
-    data_file = "multilingual_training_data.json"
-    if not os.path.exists(data_file):
-        return jsonify({"error": f"Training data file {data_file} not found"}), 404
+load_data()
 
-    try:
-        rag_model.train_from_conversations(data_file)
-        rag_model.save_model(model_path)
-        return jsonify({"message": "Training completed and model saved successfully."})
-    except Exception as e:
-        logger.error(f"Training failed: {e}")
-        return jsonify({"error": "Training failed"}), 500
+@app.route("/", methods=["GET"])
+def root():
+    return jsonify({"message": "Kala-Kaart Flask API is running!"})
 
-# -----------------------
-# Helper routes
-# -----------------------
-@app.route("/chat", methods=["POST"])
-def chat_route():
-    body = request.json or {}
-    return handle_chat(body)
-
-@app.route("/search", methods=["POST"])
-def search_route():
-    filters = request.json or {}
-    return apply_filters(filters)
+@app.route("/health", methods=["GET"])
+def health():
+    if data is None or data.empty:
+        return jsonify({"status": "unhealthy", "message": "Data not loaded"}), 503
+    return jsonify({
+        "status": "healthy",
+        "total_artists": len(data),
+        "database_loaded": True
+    })
 
 @app.route("/stats", methods=["GET"])
-def stats_route():
-    return get_stats()
+def stats():
+    if data is None or data.empty:
+        return jsonify({"message": "No data loaded"}), 503
 
-@app.route("/similar", methods=["GET"])
-def similar_route():
-    args = request.args
-    return find_similar(args)
+    return jsonify({
+        'total_artists': len(data),
+        'unique_states': len(data['state'].unique()),
+        'unique_districts': len(data['district'].unique()),
+        'unique_crafts': len(data['craft_type'].unique()),
+        'states': sorted(data['state'].unique().tolist()),
+        'crafts': sorted(data['craft_type'].unique().tolist()),
+        'age_distribution': {
+            'min': int(data['age'].min()),
+            'max': int(data['age'].max()),
+            'mean': float(data['age'].mean())
+        }
+    })
 
-# -----------------------
-# Run app
-# -----------------------
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=8000)
+@app.route("/search", methods=["POST"])
+def search():
+    filters = request.json
+    filtered_df = data.copy()
+
+    if 'state' in filters:
+        filtered_df = filtered_df[filtered_df['state'].str.contains(filters['state'], case=False, na=False)]
+    if 'district' in filters:
+        filtered_df = filtered_df[filtered_df['district'].str.contains(filters['district'], case=False, na=False)]
+    if 'craft_type' in filters:
+        filtered_df = filtered_df[filtered_df['craft_type'].str.contains(filters['craft_type'], case=False, na=False)]
+    if 'name' in filters:
+        filtered_df = filtered_df[filtered_df['name'].str.contains(filters['name'], case=False, na=False)]
+    if 'age_min' in filters:
+        filtered_df = filtered_df[filtered_df['age'] >= filters['age_min']]
+    if 'age_max' in filters:
+        filtered_df = filtered_df[filtered_df['age'] <= filters['age_max']]
+
+    limit = filters.get('limit', 20)
+    artists = filtered_df.head(limit).to_dict('records')
+
+    return jsonify({
+        "artists": artists,
+        "total_count": len(filtered_df),
+        "filters_applied": {k: v for k, v in filters.items() if v is not None}
+    })
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    message = request.json.get("message", "")
+    
+    # TODO: Integrate RAG chatbot logic here
+    response = {
+        "intent": "general_query",
+        "entities": {},
+        "message": "Flask API mode: Chat functionality not yet connected to RAG.",
+        "artists": [],
+        "suggestions": ["Try searching by state", "Try searching by craft", "Browse all artists"]
+    }
+    
+    return jsonify(response)
+

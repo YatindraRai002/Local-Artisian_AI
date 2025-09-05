@@ -83,7 +83,7 @@ def quick_setup():
         logger.info(f"📁 Created directory: {directory}")
     
     # Check for CSV data file
-    csv_path = "../src/Artisans.csv"
+    csv_path = "../frontend/src/Artisans.csv"
     if os.path.exists(csv_path):
         logger.info(f"✅ Found artist data: {csv_path}")
         return csv_path
@@ -160,7 +160,7 @@ def run_training_pipeline(config):
     
     try:
         # Import training modules
-        from train_models import ComprehensiveModelTrainer
+        from training.train_models import ComprehensiveModelTrainer
         
         # Initialize trainer
         trainer = ComprehensiveModelTrainer({
