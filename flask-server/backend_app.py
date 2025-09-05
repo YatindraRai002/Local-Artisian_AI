@@ -5,6 +5,9 @@ from helpers.chat_utils import handle_chat
 from helpers.search_utils import apply_filters
 from helpers.stats_utils import get_stats
 from helpers.similar_utils import find_similar
+from helpers.chat_utils import handle_chat
+
+
 
 app = Flask(__name__)
 
