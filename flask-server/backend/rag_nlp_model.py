@@ -33,9 +33,34 @@ class MultilingualRAGModel:
         self.vector_stores = {}
         self.chroma_client = None
 
-        # Initialize all models
         self._initialize_models()
         self._initialize_chroma()
+
+    # -------------------------
+    # Training from conversations
+    # -------------------------
+    def train_from_conversations(self, training_data_file: str):
+        """Build vector stores from training data JSON"""
+        import json
+
+        if not os.path.exists(training_data_file):
+            logger.error(f"Training data file not found: {training_data_file}")
+            return
+
+        with open(training_data_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+
+        if 'conversations' not in data:
+            logger.error("Training data does not contain 'conversations' key")
+            return
+
+        for lang in self.supported_languages:
+            lang_docs = [item for item in data['conversations'] if item.get('language') == lang]
+            if lang_docs:
+                logger.info(f"Building vector store for {lang} with {len(lang_docs)} documents")
+                self.build_vector_store(lang_docs, lang)
+            else:
+                logger.warning(f"No documents found for language {lang}")
 
     # -------------------------
     # Model Initialization
@@ -43,35 +68,30 @@ class MultilingualRAGModel:
     def _initialize_models(self):
         """Initialize embeddings, translation, intent, and context models"""
         logger.info("Initializing multilingual models...")
-
-        # Multilingual sentence transformer for embeddings
         self.multilingual_encoder = SentenceTransformer(
             'sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2'
         )
 
-        # Language detection
         self.language_detector = pipeline(
             "text-classification",
             model="papluca/xlm-roberta-base-language-detection",
             device=0 if self.device == 'cuda' else -1
         )
 
-        # Translation models (only supported pairs)
         self._load_available_translation_models()
 
-        # Intent classification
         self.intent_classifier = pipeline(
             "zero-shot-classification",
             model="facebook/bart-large-mnli",
             device=0 if self.device == 'cuda' else -1
         )
 
-        # Multilingual BERT for contextual embeddings
         self.context_model_name = "bert-base-multilingual-cased"
         self.context_tokenizer = AutoTokenizer.from_pretrained(self.context_model_name)
         self.context_model = AutoModel.from_pretrained(self.context_model_name).to(self.device)
-
         logger.info("Models initialized successfully")
+
+    # ... rest of your methods remain unchanged ...
 
     def _load_available_translation_models(self):
         """Load only translation models that are actually available"""
