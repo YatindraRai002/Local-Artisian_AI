@@ -1,7 +1,15 @@
 from flask import Flask, request, jsonify
 import logging
-from backend.rag_nlp_model import MultilingualRAGModel  # make sure this file is in backend/
 import os
+
+# Import helpers
+from helpers.chat_utils import handle_chat
+from helpers.search_utils import apply_filters
+from helpers.stats_utils import get_stats
+from helpers.similar_utils import find_similar
+
+# Import RAG model
+from backend.rag_nlp_model import MultilingualRAGModel
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +30,9 @@ if os.path.exists(model_path):
 else:
     logger.warning("Trained RAG model not found. Please train first.")
 
+# -----------------------
+# RAG model routes
+# -----------------------
 @app.route("/")
 def home():
     return jsonify({"message": "Kala-Kaart AI Chatbot API is running."})
@@ -30,7 +41,7 @@ def home():
 def query():
     data = request.json
     user_input = data.get("query", "")
-    
+
     if not user_input:
         return jsonify({"error": "Query not provided"}), 400
 
@@ -58,6 +69,30 @@ def train():
         logger.error(f"Training failed: {e}")
         return jsonify({"error": "Training failed"}), 500
 
+# -----------------------
+# Helper routes
+# -----------------------
+@app.route("/chat", methods=["POST"])
+def chat_route():
+    body = request.json or {}
+    return handle_chat(body)
+
+@app.route("/search", methods=["POST"])
+def search_route():
+    filters = request.json or {}
+    return apply_filters(filters)
+
+@app.route("/stats", methods=["GET"])
+def stats_route():
+    return get_stats()
+
+@app.route("/similar", methods=["GET"])
+def similar_route():
+    args = request.args
+    return find_similar(args)
+
+# -----------------------
+# Run app
+# -----------------------
 if __name__ == "__main__":
-    # Start Flask app
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(debug=True, host="0.0.0.0", port=8000)
