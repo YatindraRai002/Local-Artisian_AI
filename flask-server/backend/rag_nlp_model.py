@@ -2,7 +2,7 @@
 Multilingual RAG Model for Kala-Kaart Chatbot
 Supports Hindi, English, Tamil, and Telugu.
 """
-
+from typing import List, Dict, Any
 import os
 import json
 import logging
@@ -237,24 +237,44 @@ class MultilingualRAGModel:
     # Semantic Search
     # -------------------------
     def semantic_search(self, query: str, language: str, top_k: int = 5) -> List[Dict[str, Any]]:
+        """
+        Perform semantic search using Chroma DB (preferred) or FAISS (fallback).
+        """
         results = []
-        vectorstore = load_vector_store()  # This handles Chroma → FAISS fallback
+        query_emb = self.create_embeddings([query])
 
-        if not vectorstore:
-            logger.error("❌ No vector store available for search")
+        if len(query_emb) == 0:
+            logger.warning("⚠️ No embedding created for query")
             return results
 
+        # --- Try Chroma ---
         try:
-            docs = vectorstore.similarity_search_with_score(query, k=top_k)
-            for doc, score in docs:
-                results.append({
-                    'text': doc.page_content,
-                    'metadata': doc.metadata,
-                    'score': float(1 / (1 + score)),  # normalize
-                    'distance': float(score)
-                })
+            vectorstore = load_vector_store()
+            if vectorstore:
+                res = vectorstore.similarity_search_with_score(query, k=top_k)
+                for doc, score in res:
+                    results.append({
+                        'text': doc.page_content,
+                        'metadata': doc.metadata,
+                        'score': float(score),
+                        'distance': float(1 / (1 + score))  # normalized
+                    })
+                return results
         except Exception as e:
-            logger.error(f"Semantic search failed: {e}")
+            logger.warning(f"⚠️ Chroma search failed: {e}")
+
+        # --- Fallback: FAISS pickle ---
+        if language in self.vector_stores:
+            vs = self.vector_stores[language]
+            distances, indices = vs['index'].search(query_emb.astype('float32'), top_k)
+            for i, idx in enumerate(indices[0]):
+                if idx != -1:
+                    results.append({
+                        'text': vs['texts'][idx],
+                        'metadata': vs['metadatas'][idx],
+                        'score': float(distances[0][i]),
+                        'distance': float(1 / (1 + distances[0][i]))
+                    })
 
         return results
 
