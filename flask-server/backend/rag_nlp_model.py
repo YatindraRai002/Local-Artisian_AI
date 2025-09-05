@@ -18,6 +18,8 @@ import torch
 from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.config import Settings
+from backend.training.vector_store_utils import load_vector_store
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -146,6 +148,14 @@ class MultilingualRAGModel:
         if not self.chroma_client and not self.vector_stores:
             logger.error("❌ No vector stores found! Please run build_vector_store.py")
 
+       
+        vectorstore = load_vector_store()
+        if vectorstore:
+            self.vector_stores["default"] = vectorstore
+            logger.info("✅ Vector store loaded successfully.")
+        else:
+            logger.error("❌ No usable vector store found. Please run build_vector_store.py first.")
+
     # -------------------------
     # Language Detection & Translation
     # -------------------------
@@ -228,40 +238,24 @@ class MultilingualRAGModel:
     # -------------------------
     def semantic_search(self, query: str, language: str, top_k: int = 5) -> List[Dict[str, Any]]:
         results = []
+        vectorstore = load_vector_store()  # This handles Chroma → FAISS fallback
 
-        # Try Chroma first
-        if self.chroma_client:
-            try:
-                collection = self.chroma_client.get_collection(name=f"kala_kaart_{language}")
-                query_emb = self.create_embeddings([query])
-                if len(query_emb) > 0:
-                    res = collection.query(query_embeddings=query_emb.tolist(), n_results=top_k)
-                    for doc, meta, dist in zip(res['documents'][0], res['metadatas'][0], res['distances'][0]):
-                        results.append({
-                            'text': doc,
-                            'metadata': meta,
-                            'score': float(1 / (1 + dist)),
-                            'distance': float(dist)
-                        })
-                    return results
-            except Exception as e:
-                logger.warning(f"Chroma search failed for {language}: {e}")
+        if not vectorstore:
+            logger.error("❌ No vector store available for search")
+            return results
 
-        # Fall back to FAISS pickle
-        if language in self.vector_stores:
-            query_emb = self.create_embeddings([query])
-            if len(query_emb) == 0:
-                return []
-            vs = self.vector_stores[language]
-            distances, indices = vs['index'].search(query_emb.astype('float32'), top_k)
-            for i, idx in enumerate(indices[0]):
-                if idx != -1:
-                    results.append({
-                        'text': vs['texts'][idx],
-                        'metadata': vs['metadatas'][idx],
-                        'score': float(1 / (1 + distances[0][i])),
-                        'distance': float(distances[0][i])
-                    })
+        try:
+            docs = vectorstore.similarity_search_with_score(query, k=top_k)
+            for doc, score in docs:
+                results.append({
+                    'text': doc.page_content,
+                    'metadata': doc.metadata,
+                    'score': float(1 / (1 + score)),  # normalize
+                    'distance': float(score)
+                })
+        except Exception as e:
+            logger.error(f"Semantic search failed: {e}")
+
         return results
 
     # -------------------------
