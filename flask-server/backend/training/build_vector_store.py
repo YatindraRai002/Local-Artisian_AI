@@ -24,12 +24,25 @@ documents = []
 for file in json_files:
     file_path = os.path.join(TRAINING_DATA_DIR, file)
     with open(file_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        for item in data:
-            if "content" in item:
-                documents.append(item["content"])
+        try:
+            data = json.load(f)
+        except Exception as e:
+            print(f"⚠️ Failed to read {file}: {e}")
+            continue
 
-print(f"Loaded {len(documents)} documents from {len(json_files)} files.")
+        for item in data:
+            # Handle different JSON formats
+            if isinstance(item, dict):
+                text = item.get("content") or item.get("text") or ""
+            elif isinstance(item, str):
+                text = item
+            else:
+                text = ""
+
+            if text.strip():
+                documents.append(text.strip())
+
+print(f"✅ Loaded {len(documents)} documents from {len(json_files)} files.")
 
 # ----------------------------------------------------------------
 # Create embeddings
