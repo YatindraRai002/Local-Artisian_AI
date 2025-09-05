@@ -1,51 +1,53 @@
-# backend/training/build_vector_store.py
-
 import os
 import json
-from sentence_transformers import SentenceTransformer
-from langchain.vectorstores import Chroma, FAISS
-from langchain.embeddings import SentenceTransformerEmbeddings
-import pickle
+from langchain_community.vectorstores import Chroma, FAISS
+from langchain_community.embeddings import SentenceTransformerEmbeddings
 
-# Paths
-TRAINING_DATA_DIR = "backend/training/training_data"
-CHROMA_DIR = "backend/chroma_db/multilingual_chroma"
-VECTOR_STORE_DIR = "backend/vector_stores"
-VECTOR_STORE_FILE = os.path.join(VECTOR_STORE_DIR, "multilingual_faiss_index")
+# ----------------------------------------------------------------
+# Build absolute paths
+# ----------------------------------------------------------------
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # folder of this script
+TRAINING_DATA_DIR = os.path.join(BASE_DIR, "training_data")
+VECTOR_STORE_DIR = os.path.join(BASE_DIR, "vector_stores")
 
-# Load the latest multilingual training data
-json_files = [f for f in os.listdir(TRAINING_DATA_DIR) if f.endswith(".json")]
-if not json_files:
-    raise FileNotFoundError("No multilingual training data JSON found!")
-
-latest_file = sorted(json_files)[-1]
-training_data_path = os.path.join(TRAINING_DATA_DIR, latest_file)
-
-with open(training_data_path, "r", encoding="utf-8") as f:
-    data = json.load(f)["conversations"]
-
-# Prepare texts for embeddings
-texts = [conv["user_message"] + " " + conv["bot_response"] for conv in data]
-
-# Initialize multilingual embedding model
-embedding_model = SentenceTransformerEmbeddings(
-    model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-)
-
-# -----------------------------
-# Step 1: Build Chroma DB
-# -----------------------------
-os.makedirs(CHROMA_DIR, exist_ok=True)
-chroma_db = Chroma.from_texts(texts, embedding_model, persist_directory=CHROMA_DIR)
-chroma_db.persist()
-print(f"✅ Chroma DB created at {CHROMA_DIR}")
-
-# -----------------------------
-# Step 2: Build FAISS backup
-# -----------------------------
+# ----------------------------------------------------------------
+# Ensure output dir exists
+# ----------------------------------------------------------------
 os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
-faiss_index = FAISS.from_texts(texts, embedding_model)
-faiss_index.save_local(VECTOR_STORE_FILE)
-print(f"✅ FAISS vector store saved at {VECTOR_STORE_FILE}")
 
-print("\n🎉 Vector store (FAISS) and Chroma DB ready! You can now start the RAG model.")
+# ----------------------------------------------------------------
+# Load JSON files
+# ----------------------------------------------------------------
+json_files = [f for f in os.listdir(TRAINING_DATA_DIR) if f.endswith(".json")]
+documents = []
+
+for file in json_files:
+    file_path = os.path.join(TRAINING_DATA_DIR, file)
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        for item in data:
+            if "content" in item:
+                documents.append(item["content"])
+
+print(f"Loaded {len(documents)} documents from {len(json_files)} files.")
+
+# ----------------------------------------------------------------
+# Create embeddings
+# ----------------------------------------------------------------
+embedding_model = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+
+# ----------------------------------------------------------------
+# Try Chroma first, fallback to FAISS
+# ----------------------------------------------------------------
+try:
+    print("Trying to build Chroma DB...")
+    vectorstore = Chroma.from_texts(documents, embedding_model, persist_directory=VECTOR_STORE_DIR)
+    vectorstore.persist()
+    print("✅ Chroma DB created successfully!")
+except Exception as e:
+    print(f"⚠️ Chroma failed: {e}")
+    print("Falling back to FAISS...")
+    vectorstore = FAISS.from_texts(documents, embedding_model)
+    faiss_path = os.path.join(VECTOR_STORE_DIR, "faiss_index")
+    vectorstore.save_local(faiss_path)
+    print("✅ FAISS index created successfully!")
