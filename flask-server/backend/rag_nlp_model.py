@@ -22,6 +22,7 @@ from chromadb.config import Settings
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 class MultilingualRAGModel:
     def __init__(self, model_path: str = "models/", use_gpu: bool = True):
         self.model_path = model_path
@@ -35,14 +36,13 @@ class MultilingualRAGModel:
 
         self._initialize_models()
         self._initialize_chroma()
+        self._load_vectorstores()
 
     # -------------------------
     # Training from conversations
     # -------------------------
     def train_from_conversations(self, training_data_file: str):
         """Build vector stores from training data JSON"""
-        import json
-
         if not os.path.exists(training_data_file):
             logger.error(f"Training data file not found: {training_data_file}")
             return
@@ -91,8 +91,6 @@ class MultilingualRAGModel:
         self.context_model = AutoModel.from_pretrained(self.context_model_name).to(self.device)
         logger.info("Models initialized successfully")
 
-    # ... rest of your methods remain unchanged ...
-
     def _load_available_translation_models(self):
         """Load only translation models that are actually available"""
         available_pairs = ['hi-en', 'en-hi']  # Only supported models
@@ -112,11 +110,41 @@ class MultilingualRAGModel:
         try:
             self.chroma_client = chromadb.Client(Settings(
                 chroma_db_impl="duckdb+parquet",
-                persist_directory="./chroma_db"
+                persist_directory="backend/chroma_db/multilingual_chroma"
             ))
-            logger.info("ChromaDB initialized successfully")
+            logger.info("✅ ChromaDB initialized successfully")
         except Exception as e:
             logger.warning(f"ChromaDB initialization failed: {e}")
+            self.chroma_client = None
+
+    def _load_vectorstores(self):
+        """Try to load existing vector stores (Chroma → FAISS)"""
+        # Chroma
+        if self.chroma_client:
+            try:
+                for lang in self.supported_languages:
+                    collection_name = f"kala_kaart_{lang}"
+                    try:
+                        self.chroma_client.get_or_create_collection(name=collection_name)
+                        logger.info(f"✅ Using Chroma collection for {lang}")
+                    except Exception as e:
+                        logger.warning(f"Chroma collection for {lang} unavailable: {e}")
+            except Exception as e:
+                logger.warning(f"Chroma loading failed: {e}")
+
+        # FAISS pickle fallback
+        for lang in self.supported_languages:
+            file = os.path.join("backend/vector_stores", f"{lang}_vector_store.pkl")
+            if os.path.exists(file):
+                try:
+                    with open(file, 'rb') as f:
+                        self.vector_stores[lang] = pickle.load(f)
+                    logger.info(f"✅ Loaded FAISS backup for {lang}")
+                except Exception as e:
+                    logger.warning(f"Failed to load FAISS backup for {lang}: {e}")
+
+        if not self.chroma_client and not self.vector_stores:
+            logger.error("❌ No vector stores found! Please run build_vector_store.py")
 
     # -------------------------
     # Language Detection & Translation
@@ -184,7 +212,7 @@ class MultilingualRAGModel:
         # Add to ChromaDB if available
         if self.chroma_client:
             try:
-                collection = self.chroma_client.create_collection(name=f"kala_kaart_{language}", get_or_create=True)
+                collection = self.chroma_client.get_or_create_collection(name=f"kala_kaart_{language}")
                 collection.add(
                     embeddings=embeddings.tolist(),
                     documents=texts,
@@ -199,24 +227,41 @@ class MultilingualRAGModel:
     # Semantic Search
     # -------------------------
     def semantic_search(self, query: str, language: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        if language not in self.vector_stores:
-            return []
-
-        query_emb = self.create_embeddings([query])
-        if len(query_emb) == 0:
-            return []
-
-        vs = self.vector_stores[language]
-        distances, indices = vs['index'].search(query_emb.astype('float32'), top_k)
         results = []
-        for i, idx in enumerate(indices[0]):
-            if idx != -1:
-                results.append({
-                    'text': vs['texts'][idx],
-                    'metadata': vs['metadatas'][idx],
-                    'score': float(1 / (1 + distances[0][i])),
-                    'distance': float(distances[0][i])
-                })
+
+        # Try Chroma first
+        if self.chroma_client:
+            try:
+                collection = self.chroma_client.get_collection(name=f"kala_kaart_{language}")
+                query_emb = self.create_embeddings([query])
+                if len(query_emb) > 0:
+                    res = collection.query(query_embeddings=query_emb.tolist(), n_results=top_k)
+                    for doc, meta, dist in zip(res['documents'][0], res['metadatas'][0], res['distances'][0]):
+                        results.append({
+                            'text': doc,
+                            'metadata': meta,
+                            'score': float(1 / (1 + dist)),
+                            'distance': float(dist)
+                        })
+                    return results
+            except Exception as e:
+                logger.warning(f"Chroma search failed for {language}: {e}")
+
+        # Fall back to FAISS pickle
+        if language in self.vector_stores:
+            query_emb = self.create_embeddings([query])
+            if len(query_emb) == 0:
+                return []
+            vs = self.vector_stores[language]
+            distances, indices = vs['index'].search(query_emb.astype('float32'), top_k)
+            for i, idx in enumerate(indices[0]):
+                if idx != -1:
+                    results.append({
+                        'text': vs['texts'][idx],
+                        'metadata': vs['metadatas'][idx],
+                        'score': float(1 / (1 + distances[0][i])),
+                        'distance': float(distances[0][i])
+                    })
         return results
 
     # -------------------------

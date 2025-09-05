@@ -5,7 +5,7 @@ url = "http://127.0.0.1:8000/query"
 
 # Your query
 data = {
-    "query": "Who is a famous artisan for pottery?"
+    "query": "Find artisan Amit Patel"
 }
 
 # Send POST request

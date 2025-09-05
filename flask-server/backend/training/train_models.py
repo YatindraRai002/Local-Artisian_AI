@@ -12,9 +12,9 @@ from datetime import datetime
 from typing import Dict, Any
 
 # Import our custom modules
-from multilingual_training_data import MultilingualTrainingDataGenerator
-from rag_nlp_model import MultilingualRAGModel
-from multilingual_trainer import MultilingualTrainer
+from backend.multilingual_training_data import MultilingualTrainingDataGenerator
+from backend.rag_nlp_model import MultilingualRAGModel
+from backend.multilingual_trainer import MultilingualTrainer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
