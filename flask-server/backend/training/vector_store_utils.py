@@ -2,9 +2,9 @@ import os
 import logging
 from langchain_community.vectorstores import Chroma, FAISS
 from langchain_community.embeddings import SentenceTransformerEmbeddings
-from backend.training.vector_store_utils import load_vector_store
 
-vectorstore = load_vector_store()
+
+
 
 
 logger = logging.getLogger(__name__)
