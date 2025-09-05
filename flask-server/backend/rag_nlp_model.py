@@ -19,7 +19,7 @@ from sentence_transformers import SentenceTransformer
 import chromadb
 from chromadb.config import Settings
 from backend.training.vector_store_utils import load_vector_store
-
+from transformers import pipeline
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,6 +40,11 @@ class MultilingualRAGModel:
         self._initialize_chroma()
         self._load_vectorstores()
 
+        self.answer_generator = pipeline(
+            "text2text-generation",
+            model="google/flan-t5-base",   # lightweight but good for RAG
+            device=0 if self.device == "cuda" else -1
+        )
     # -------------------------
     # Training from conversations
     # -------------------------
@@ -282,9 +287,26 @@ class MultilingualRAGModel:
     # Response Generation
     # -------------------------
     def generate_response(self, query: str, retrieved_docs: List[Dict[str, Any]], language: str) -> str:
-        context = " ".join([doc['text'] for doc in retrieved_docs[:3]]) if retrieved_docs else ""
-        return f"Response in {language}: {context[:500] if context else 'No info found.'}"
+        """
+        Generate a response using the retrieved docs as context.
+        """
+        if not retrieved_docs:
+            return f"❌ Sorry, I couldn't find any relevant information in {language}."
 
+        # Take top 3 docs for context
+        context = " ".join([doc['text'] for doc in retrieved_docs[:3]])
+
+        # Prompt for the generator
+        prompt = f"Answer the following question using the given context.\n\nContext: {context}\n\nQuestion: {query}\n\nAnswer:"
+
+        try:
+            output = self.answer_generator(prompt, max_length=200, num_return_sequences=1, do_sample=False)
+            answer = output[0]["generated_text"].strip()
+            return f"💬 Response in {language}: {answer}"
+        except Exception as e:
+            logger.error(f"Response generation failed: {e}")
+            # fallback to simple context return
+            return f"Response in {language}: {context[:500] if context else 'No info found.'}"
     # -------------------------
     # Save / Load Model
     # -------------------------
