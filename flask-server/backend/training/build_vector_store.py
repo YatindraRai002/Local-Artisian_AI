@@ -55,7 +55,7 @@ embedding_model = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
 try:
     print("Trying to build Chroma DB...")
     vectorstore = Chroma.from_texts(documents, embedding_model, persist_directory=VECTOR_STORE_DIR)
-    vectorstore.persist()
+    
     print("✅ Chroma DB created successfully!")
 except Exception as e:
     print(f"⚠️ Chroma failed: {e}")
