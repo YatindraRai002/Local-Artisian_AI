@@ -5,9 +5,10 @@ Flask backend for querying the Multilingual RAG model.
 
 from flask import Flask, request, jsonify
 import logging
-import os
 from rag_nlp_model import MultilingualRAGModel  # Your model file
 import json
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 # -------------------------

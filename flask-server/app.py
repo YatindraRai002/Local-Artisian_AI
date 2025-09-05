@@ -9,7 +9,7 @@ data = None
 
 def load_data():
     global data
-    csv_path = os.getenv("CSV_PATH", "../src/Artisans.csv")
+    csv_path = os.getenv("CSV_PATH", r"C:\Users\hanis\OneDrive\Desktop\Team Tubelight\Local-Artisian_AI\Local-Artisian_AI\flask-server\frontend\src\Artisans.csv")
     try:
         data = pd.read_csv(csv_path)
         data = data.dropna(subset=['name', 'craft_type', 'state', 'district'])
