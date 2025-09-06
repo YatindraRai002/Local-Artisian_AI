@@ -1,36 +1,28 @@
 #!/usr/bin/env python3
 """
 Vector Store Loader Utility
-Loads vector stores for retrieval in the RAG pipeline.
-- Prefers Chroma persistence
-- Falls back to FAISS if Chroma is unavailable
+- Loads Chroma (preferred) or FAISS (fallback) for RAG pipeline
 """
 
 import os
 import logging
 from langchain_community.vectorstores import Chroma, FAISS
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings
+  # Updated import
 
-# Configure logging
+# Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-VECTOR_STORE_DIR = os.path.join(BASE_DIR, "training", "vector_stores")
+VECTOR_STORE_DIR = os.path.join(BASE_DIR, "vector_stores")
 
-# Embedding model (small + fast multilingual)
-embedding_model = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+embedding_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
 
 
 def load_vector_store():
-    """
-    Load a vector store from disk.
-    - Tries Chroma DB first
-    - Falls back to FAISS if Chroma is unavailable
-    Returns:
-        vectorstore (Chroma | FAISS | None): Loaded vector store object
-    """
     vectorstore = None
 
     # ---- Try Chroma ----
@@ -48,7 +40,7 @@ def load_vector_store():
             else:
                 logger.warning("⚠️ Chroma store is empty. Falling back to FAISS.")
     except Exception as e:
-        logger.error("❌ Failed to load Chroma: %s", e)
+        logger.warning("⚠️ Chroma failed: %s", e)
 
     # ---- Try FAISS ----
     try:
@@ -63,19 +55,17 @@ def load_vector_store():
             logger.info("✅ Loaded FAISS vector store")
             return vectorstore
         else:
-            logger.error("❌ No FAISS index found in %s", faiss_path)
+            logger.warning("⚠️ No FAISS index found in %s", faiss_path)
     except Exception as e:
         logger.error("❌ Failed to load FAISS: %s", e)
 
-    # ---- Failure ----
-    logger.error("❌ No vector stores found! Run `build_vector_store.py` first.")
+    logger.error("❌ No vector store found! Run `build_vector_store.py` first.")
     return None
 
 
 if __name__ == "__main__":
-    # Quick check
     vs = load_vector_store()
     if vs:
-        logger.info("Vector store is ready for use ✅")
+        logger.info("Vector store is ready ✅")
     else:
         logger.warning("Vector store not available ❌")

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 Build Vector Store for Kala-Kaart Chatbot
-- Loads text/CSV/JSON files from backend/training/training_data/
-- Builds Chroma (preferred) or FAISS (fallback) vector store
-- Saves under backend/training/vector_stores/
+- Loads text/CSV/JSON files from training_data/
+- Builds Chroma (preferred) or FAISS (fallback)
+- Saves vector stores under vector_stores/
 """
 
 import os
@@ -11,9 +11,10 @@ import glob
 import logging
 import pandas as pd
 from langchain_community.vectorstores import Chroma, FAISS
-from langchain_community.embeddings import SentenceTransformerEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings
+  # Updated import
 
-# Logging
+# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -22,12 +23,14 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "training_data")
 VECTOR_STORE_DIR = os.path.join(BASE_DIR, "vector_stores")
 
-# Embeddings model (stable for langchain 0.2.x)
-embedding_model = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
+# Embedding model
+embedding_model = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
 
 
 def load_documents():
-    """Load documents from training_data directory."""
+    """Load all text, CSV, and JSON files from training_data."""
     texts, metadatas = [], []
 
     # TXT files
@@ -67,15 +70,15 @@ def load_documents():
 
 
 def build_vector_store():
-    """Build and persist vector store."""
+    """Build and persist Chroma or FAISS vector store."""
     texts, metadatas = load_documents()
-
     if not texts:
-        logger.error("❌ No documents found in %s. Cannot build vector store.", DATA_DIR)
+        logger.error("❌ No documents found in %s", DATA_DIR)
         return None
 
     os.makedirs(VECTOR_STORE_DIR, exist_ok=True)
 
+    # ---- Try Chroma ----
     try:
         logger.info("🔧 Building Chroma vector store...")
         vectorstore = Chroma.from_texts(
@@ -87,9 +90,9 @@ def build_vector_store():
         logger.info("✅ Chroma vector store built and persisted at %s", VECTOR_STORE_DIR)
         return vectorstore
     except Exception as e:
-        logger.error("❌ Chroma failed: %s", e)
-        logger.info("⚠️ Falling back to FAISS...")
+        logger.warning("⚠️ Chroma failed (falling back to FAISS): %s", e)
 
+    # ---- Fallback: FAISS ----
     try:
         vectorstore = FAISS.from_texts(
             texts=texts,
@@ -101,7 +104,7 @@ def build_vector_store():
         logger.info("✅ FAISS vector store saved at %s", faiss_path)
         return vectorstore
     except Exception as e:
-        logger.error("❌ Failed to build FAISS: %s", e)
+        logger.error("❌ FAISS build failed: %s", e)
         return None
 
 
