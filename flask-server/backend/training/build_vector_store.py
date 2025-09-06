@@ -11,8 +11,9 @@ import glob
 import logging
 import pandas as pd
 from langchain_community.vectorstores import Chroma, FAISS
-from langchain.embeddings import HuggingFaceEmbeddings
-  # Updated import
+from langchain_huggingface import HuggingFaceEmbeddings
+
+embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -54,9 +55,10 @@ def load_documents():
             logger.warning(f"⚠️ Could not parse {filepath}: {e}")
 
     # JSON files
+    # JSON files
     for filepath in glob.glob(os.path.join(DATA_DIR, "*.json")):
         try:
-            df = pd.read_json(filepath)
+            df = pd.read_json(filepath, orient="records")  # <-- explicitly set orient
             for i, row in df.iterrows():
                 row_text = " ".join(str(v) for v in row.values if pd.notna(v))
                 if row_text.strip():
@@ -65,8 +67,8 @@ def load_documents():
         except Exception as e:
             logger.warning(f"⚠️ Could not parse {filepath}: {e}")
 
-    logger.info("📄 Loaded %s documents from %s files", len(texts), len(metadatas))
-    return texts, metadatas
+        logger.info("📄 Loaded %s documents from %s files", len(texts), len(metadatas))
+        return texts, metadatas
 
 
 def build_vector_store():

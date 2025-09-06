@@ -7,8 +7,9 @@ Vector Store Loader Utility
 import os
 import logging
 from langchain_community.vectorstores import Chroma, FAISS
-from langchain.embeddings import HuggingFaceEmbeddings
-  # Updated import
+from langchain_huggingface import HuggingFaceEmbeddings
+
+embedding_model = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # Logging
 logging.basicConfig(level=logging.INFO)
