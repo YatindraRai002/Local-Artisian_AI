@@ -3,7 +3,7 @@ Kala-Kaart AI Chatbot API
 Merged Flask backend combining CSV data handling and RAG model functionality.
 """
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, make_response
 from flask_cors import CORS
 import os
 import pandas as pd
@@ -84,7 +84,15 @@ initialize_rag_model()
 # -------------------------
 # Basic API Endpoints
 # -------------------------
-
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = make_response()
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add('Access-Control-Allow-Headers', "*")
+        response.headers.add('Access-Control-Allow-Methods', "*")
+        return response
+    
 @app.route("/", methods=["GET"])
 def root():
     """Test endpoint to check if API is running"""

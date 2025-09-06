@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, X, Search, Users, Palette, MapPin, Sparkles, Loader2 } from 'lucide-react';
+import { MessageCircle, X, Search, Users, Sparkles, Loader2 } from 'lucide-react';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
 import { getArtistsData, apiService } from '../data/artistsData';
 import type { Artist } from '../types';
@@ -187,6 +187,34 @@ export const UserDashboard: React.FC = () => {
     };
   }, []);
 
+  // Helper function to safely get artist location data
+  const getArtistLocation = (artist: any) => {
+    return {
+      state: artist.location?.state || artist.state || 'State not specified',
+      district: artist.location?.district || artist.district || 'District not specified',
+      village: artist.location?.village || artist.village || ''
+    };
+  };
+
+  // Helper function to safely get artist contact data
+  const getArtistContact = (artist: any) => {
+    return {
+      phone: artist.contact?.phone || artist.contact_phone || artist.phone || 'Not available',
+      email: artist.contact?.email || artist.contact_email || artist.email || 'Not available'
+    };
+  };
+
+  // Helper function to safely get artist languages
+  const getArtistLanguages = (artist: any) => {
+    if (artist.languages && Array.isArray(artist.languages)) {
+      return artist.languages;
+    }
+    if (artist.languages_spoken) {
+      // Handle comma-separated string of languages
+      return artist.languages_spoken.split(',').map((lang: string) => lang.trim()).filter(Boolean);
+    }
+    return ['Hindi']; // Default fallback
+  };
 
   // Load data from API on component mount
   useEffect(() => {
@@ -200,7 +228,7 @@ export const UserDashboard: React.FC = () => {
           apiService.getStats()
         ]);
 
-        setArtists(artistsResult.artists);
+        setArtists(artistsResult.artists || []);
         setStats({
           totalArtists: statsResult.total_artists || 0,
           totalCrafts: statsResult.unique_crafts || 0,
@@ -217,7 +245,7 @@ export const UserDashboard: React.FC = () => {
         setStats({
           totalArtists: localArtists.length,
           totalCrafts: new Set(localArtists.map(a => a.craft_type)).size,
-          totalStates: new Set(localArtists.map(a => a.location.state)).size,
+          totalStates: new Set(localArtists.map(a => getArtistLocation(a).state)).size,
         });
       } finally {
         setIsLoading(false);
@@ -227,18 +255,23 @@ export const UserDashboard: React.FC = () => {
     loadData();
   }, []);
 
-  // Handle search
+  // Handle search with safe property access
   useEffect(() => {
     if (!searchQuery.trim()) {
       setFilteredArtists(artists.slice(0, 12)); // Show first 12
     } else {
-      const filtered = artists.filter(artist =>
-        artist.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        artist.craft_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        artist.location.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        artist.location.district.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        artist.location.village.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      const filtered = artists.filter(artist => {
+        const location = getArtistLocation(artist);
+        const searchLower = searchQuery.toLowerCase();
+        
+        return (
+          (artist.name || '').toLowerCase().includes(searchLower) ||
+          (artist.craft_type || '').toLowerCase().includes(searchLower) ||
+          location.state.toLowerCase().includes(searchLower) ||
+          location.district.toLowerCase().includes(searchLower) ||
+          location.village.toLowerCase().includes(searchLower)
+        );
+      });
       setFilteredArtists(filtered.slice(0, 20)); // Show more results for search
     }
   }, [searchQuery, artists]);
@@ -465,99 +498,105 @@ export const UserDashboard: React.FC = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredArtists.map((artist) => (
-              <div key={artist.id} className="craft-card rounded-2xl p-6 border-2 border-amber-200 shadow-lg relative overflow-hidden">
-                {/* Traditional Corner Decorations */}
-                <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-amber-400 rounded-tl-lg"></div>
-                <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-amber-400 rounded-tr-lg"></div>
-                <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-amber-400 rounded-bl-lg"></div>
-                <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-amber-400 rounded-br-lg"></div>
+              {filteredArtists.map((artist) => {
+                const location = getArtistLocation(artist);
+                const contact = getArtistContact(artist);
+                const languages = getArtistLanguages(artist);
                 
-                {/* Status Badge */}
-                <div className="absolute top-0 right-0 bg-gradient-to-r from-emerald-400 to-green-400 text-white px-3 py-1 text-xs font-medium rounded-bl-lg flex items-center heritage-text">
-                  <span className="w-1.5 h-1.5 bg-white rounded-full mr-1.5"></span>
-                  उपलब्ध • Available
-                </div>
-                
-                {/* Artist Avatar Placeholder */}
-                <div className="text-center mb-6">
-                  <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-orange-200 to-amber-200 rounded-full flex items-center justify-center floating">
-                    <Users className="w-10 h-10 text-orange-600" />
-                  </div>
-                  <h4 className="font-bold text-amber-900 text-lg mb-1 heritage-text leading-tight">{artist.name}</h4>
-                  <div className="flex items-center justify-center text-amber-700 text-sm heritage-text">
-                    <span>{artist.age} वर्ष</span>
-                    <span className="mx-2 text-amber-400">•</span>
-                    <span className="capitalize">{artist.gender === 'male' ? 'पुरुष' : 'महिला'}</span>
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  {/* Craft Type - Enhanced */}
-                  <div className="bg-gradient-to-r from-purple-50 via-purple-25 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
-                    <div className="text-center">
-                      <div className="text-3xl mb-2">🎨</div>
-                      <div className="font-bold text-purple-900 text-sm heritage-text">{artist.craft_type}</div>
-                      <div className="text-xs text-purple-600 heritage-text">पारंपरिक कारीगर • Traditional Artisan</div>
+                return (
+                  <div key={artist.id || Math.random()} className="craft-card rounded-2xl p-6 border-2 border-amber-200 shadow-lg relative overflow-hidden">
+                    {/* Traditional Corner Decorations */}
+                    <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-amber-400 rounded-tl-lg"></div>
+                    <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-amber-400 rounded-tr-lg"></div>
+                    <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-amber-400 rounded-bl-lg"></div>
+                    <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-amber-400 rounded-br-lg"></div>
+                    
+                    {/* Status Badge */}
+                    <div className="absolute top-0 right-0 bg-gradient-to-r from-emerald-400 to-green-400 text-white px-3 py-1 text-xs font-medium rounded-bl-lg flex items-center heritage-text">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full mr-1.5"></span>
+                      उपलब्ध • Available
                     </div>
-                  </div>
-                  
-                  {/* Location - Enhanced */}
-                  <div className="bg-gradient-to-r from-emerald-50 via-emerald-25 to-green-50 border-2 border-emerald-200 rounded-xl p-4">
-                    <div className="text-center">
-                      <div className="text-3xl mb-2">📍</div>
-                      <div className="font-bold text-emerald-900 text-sm heritage-text">{artist.location.district}</div>
-                      <div className="text-xs text-emerald-600 heritage-text">{artist.location.state}, भारत</div>
-                    </div>
-                  </div>
-                  
-                  {/* Contact Information - Redesigned */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
-                    <div className="text-center mb-3">
-                      <div className="text-3xl mb-2">📞</div>
-                      <div className="text-xs text-blue-700 font-bold uppercase tracking-wide heritage-text">संपर्क विवरण • Contact Details</div>
-                    </div>
-                    <div className="space-y-2 text-center">
-                      <div className="bg-white rounded-lg p-2 border">
-                        <span className="text-xs text-blue-600 font-medium heritage-text block">फ़ोन:</span>
-                        <span className="text-sm font-mono text-blue-800 font-bold">{artist.contact.phone}</span>
+                    
+                    {/* Artist Avatar Placeholder */}
+                    <div className="text-center mb-6">
+                      <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-orange-200 to-amber-200 rounded-full flex items-center justify-center floating">
+                        <Users className="w-10 h-10 text-orange-600" />
                       </div>
-                      <div className="bg-white rounded-lg p-2 border">
-                        <span className="text-xs text-blue-600 font-medium heritage-text block">ईमेल:</span>
-                        <span className="text-xs text-blue-700 font-mono break-all">{artist.contact.email}</span>
+                      <h4 className="font-bold text-amber-900 text-lg mb-1 heritage-text leading-tight">{artist.name || 'Unknown Artist'}</h4>
+                      <div className="flex items-center justify-center text-amber-700 text-sm heritage-text">
+                        <span>{artist.age || 'N/A'} वर्ष</span>
+                        <span className="mx-2 text-amber-400">•</span>
+                        <span className="capitalize">{artist.gender === 'male' ? 'पुरुष' : artist.gender === 'female' ? 'महिला' : 'N/A'}</span>
                       </div>
                     </div>
-                  </div>
-                  
-                  {/* Languages */}
-                  <div className="text-center">
-                    <div className="text-xs text-amber-600 font-medium mb-2 heritage-text">भाषाएं • Languages Spoken:</div>
-                    <div className="flex flex-wrap gap-1 justify-center">
-                      {artist.languages.slice(0, 3).map((lang, index) => (
-                        <span key={index} className="text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-medium border-2 border-amber-200 heritage-text">
-                          {lang}
-                        </span>
-                      ))}
-                      {artist.languages.length > 3 && (
-                        <span className="text-xs bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-medium border-2 border-orange-200 heritage-text">
-                          +{artist.languages.length - 3} और
-                        </span>
-                      )}
+                    
+                    <div className="space-y-4">
+                      {/* Craft Type - Enhanced */}
+                      <div className="bg-gradient-to-r from-purple-50 via-purple-25 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
+                        <div className="text-center">
+                          <div className="text-3xl mb-2">🎨</div>
+                          <div className="font-bold text-purple-900 text-sm heritage-text">{artist.craft_type || 'Traditional Craft'}</div>
+                          <div className="text-xs text-purple-600 heritage-text">पारंपरिक कारीगर • Traditional Artisan</div>
+                        </div>
+                      </div>
+                      
+                      {/* Location - Enhanced with safe property access */}
+                      <div className="bg-gradient-to-r from-emerald-50 via-emerald-25 to-green-50 border-2 border-emerald-200 rounded-xl p-4">
+                        <div className="text-center">
+                          <div className="text-3xl mb-2">📍</div>
+                          <div className="font-bold text-emerald-900 text-sm heritage-text">{location.district}</div>
+                          <div className="text-xs text-emerald-600 heritage-text">{location.state}, भारत</div>
+                        </div>
+                      </div>
+                      
+                      {/* Contact Information - Redesigned with safe property access */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
+                        <div className="text-center mb-3">
+                          <div className="text-3xl mb-2">📞</div>
+                          <div className="text-xs text-blue-700 font-bold uppercase tracking-wide heritage-text">संपर्क विवरण • Contact Details</div>
+                        </div>
+                        <div className="space-y-2 text-center">
+                          <div className="bg-white rounded-lg p-2 border">
+                            <span className="text-xs text-blue-600 font-medium heritage-text block">फ़ोन:</span>
+                            <span className="text-sm font-mono text-blue-800 font-bold">{contact.phone}</span>
+                          </div>
+                          <div className="bg-white rounded-lg p-2 border">
+                            <span className="text-xs text-blue-600 font-medium heritage-text block">ईमेल:</span>
+                            <span className="text-xs text-blue-700 font-mono break-all">{contact.email}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Languages with safe property access */}
+                      <div className="text-center">
+                        <div className="text-xs text-amber-600 font-medium mb-2 heritage-text">भाषाएं • Languages Spoken:</div>
+                        <div className="flex flex-wrap gap-1 justify-center">
+                          {languages.slice(0, 3).map((lang: string, index: number) => (
+                            <span key={index} className="text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-medium border-2 border-amber-200 heritage-text">
+                              {lang}
+                            </span>
+                          ))}
+                          {languages.length > 3 && (
+                            <span className="text-xs bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-medium border-2 border-orange-200 heritage-text">
+                              +{languages.length - 3} और
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex space-x-2 pt-2">
+                        <button className="flex-1 traditional-gradient text-white py-3 px-4 rounded-full font-semibold text-sm button-hover button-press heritage-text">
+                          🤝 कारीगर से संपर्क • Contact
+                        </button>
+                        <button className="warning-gradient text-white p-3 rounded-full button-hover button-press border-2 border-white/30">
+                          <Users className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* Action Buttons */}
-                  <div className="flex space-x-2 pt-2">
-                    <button className="flex-1 traditional-gradient text-white py-3 px-4 rounded-full font-semibold text-sm button-hover button-press heritage-text">
-                      🤝 कारीगर से संपर्क • Contact
-                    </button>
-                    <button className="warning-gradient text-white p-3 rounded-full button-hover button-press border-2 border-white/30">
-                      <Users className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-              ))}
+                );
+              })}
             </div>
           )}
           
