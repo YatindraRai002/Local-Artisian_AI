@@ -4,12 +4,11 @@ Flask backend for querying the Multilingual RAG model.
 """
 
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # Add this import
 import logging
 from backend.rag_nlp_model import MultilingualRAGModel  # Your model file
 import json
 import os
-
-
 
 # -------------------------
 # Logging Configuration
@@ -21,6 +20,7 @@ logger = logging.getLogger(__name__)
 # Flask App Initialization
 # -------------------------
 app = Flask(__name__)
+CORS(app)  # Add this line to enable CORS
 
 # -------------------------
 # Initialize RAG Model
