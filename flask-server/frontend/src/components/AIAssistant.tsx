@@ -1,8 +1,54 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Phone, Mail, MapPin, Palette } from 'lucide-react';
+import { Send, Bot, User, Phone, Mail, MapPin, Palette, AlertCircle, CheckCircle } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { Message, Artist, ChatResponse } from '../types';
 import { getArtistsData, getCraftTypes, getStates, getDistrictsByState } from '../data/artistsData';
+
+// API Configuration
+const API_CONFIG = {
+  BASE_URL: 'http://localhost:8000',
+  ENDPOINTS: {
+    HEALTH: '/',
+    QUERY: '/query',
+    TRAIN: '/train'
+  }
+};
+
+// API Service
+class ChatbotAPI {
+  private static baseUrl = API_CONFIG.BASE_URL;
+
+  static async healthCheck(): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}${API_CONFIG.ENDPOINTS.HEALTH}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Health check failed:', error);
+      throw error;
+    }
+  }
+
+  static async sendQuery(query: string): Promise<any> {
+    try {
+      const response = await fetch(`${this.baseUrl}${API_CONFIG.ENDPOINTS.QUERY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Query failed:', error);
+      throw error;
+    }
+  }
+}
 
 const TypingIndicator = () => (
   <div className="flex items-center space-x-1 p-3">
@@ -54,7 +100,8 @@ const ArtistCard: React.FC<{ artist: Artist }> = ({ artist }) => (
   </div>
 );
 
-const processUserQuery = (query: string): ChatResponse => {
+// Fallback local processing function
+const processUserQueryLocally = (query: string): ChatResponse => {
   const lowerQuery = query.toLowerCase();
   
   // Greeting responses
@@ -119,33 +166,6 @@ const processUserQuery = (query: string): ChatResponse => {
     };
   }
   
-  // General help about contact information
-  if (lowerQuery.includes('contact') || lowerQuery.includes('phone') || lowerQuery.includes('number') || lowerQuery.includes('call')) {
-    return {
-      message: "All our artists have verified contact information. Here are some artists with their phone numbers:",
-      artists: artistsData.slice(0, 4),
-      suggestions: ["Show more contact details", "Find artists by location", "Search by craft type"]
-    };
-  }
-  
-  // Show all crafts
-  if (lowerQuery.includes('craft') || lowerQuery.includes('skill') || lowerQuery.includes('art') || lowerQuery.includes('type')) {
-    const crafts = getCraftTypes();
-    return {
-      message: `We have artists specializing in these traditional crafts: ${crafts.join(', ')}. Which craft interests you?`,
-      suggestions: crafts.slice(0, 4)
-    };
-  }
-  
-  // Show all states
-  if (lowerQuery.includes('state') || lowerQuery.includes('location') || lowerQuery.includes('where')) {
-    const states = getStates();
-    return {
-      message: `Our artists are located across these states: ${states.join(', ')}. Which state would you like to explore?`,
-      suggestions: states.slice(0, 4)
-    };
-  }
-  
   // Default response with sample artists
   return {
     message: "I can help you find traditional Indian artists. Here are some featured artists with their contact information:",
@@ -170,7 +190,25 @@ export const AIAssistant: React.FC = () => {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [useBackend, setUseBackend] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Check backend connection on component mount
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        await ChatbotAPI.healthCheck();
+        setIsConnected(true);
+        console.log('Backend connected successfully');
+      } catch (error) {
+        setIsConnected(false);
+        console.error('Backend connection failed:', error);
+      }
+    };
+
+    checkConnection();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -191,23 +229,74 @@ export const AIAssistant: React.FC = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputMessage;
     setInputMessage('');
     setIsTyping(true);
 
-    // Simulate AI processing delay
-    setTimeout(() => {
-      const response = processUserQuery(inputMessage);
+    try {
+      let response: ChatResponse;
+
+      if (useBackend && isConnected) {
+        // Try to use backend API
+        try {
+          const backendResponse = await ChatbotAPI.sendQuery(currentInput);
+          
+          // Convert backend response to local format
+          response = {
+            message: backendResponse.response || "I received your message but couldn't process it properly.",
+            suggestions: [
+              "Try asking about specific crafts",
+              "Ask about artists in different states",
+              "Search for artist names",
+              "Show contact information"
+            ]
+          };
+
+          // If backend response includes detected language, add it to message
+          if (backendResponse.language) {
+            response.message += ` (Detected language: ${backendResponse.language})`;
+          }
+
+        } catch (backendError) {
+          console.warn('Backend request failed, falling back to local processing:', backendError);
+          response = processUserQueryLocally(currentInput);
+        }
+      } else {
+        // Use local processing
+        response = processUserQueryLocally(currentInput);
+      }
+
+      // Simulate some processing delay
+      setTimeout(() => {
+        const assistantMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          content: JSON.stringify(response),
+          role: 'assistant',
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsTyping(false);
+      }, 1000 + Math.random() * 1000);
+
+    } catch (error) {
+      console.error('Error processing message:', error);
       
-      const assistantMessage: Message = {
+      const errorResponse: ChatResponse = {
+        message: "I'm sorry, I encountered an error processing your request. Please try again.",
+        suggestions: ["Try a different question", "Check your connection", "Ask about artists"]
+      };
+
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: JSON.stringify(response),
+        content: JSON.stringify(errorResponse),
         role: 'assistant',
         timestamp: new Date()
       };
 
-      setMessages(prev => [...prev, assistantMessage]);
+      setMessages(prev => [...prev, errorMessage]);
       setIsTyping(false);
-    }, 1000 + Math.random() * 2000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -224,11 +313,41 @@ export const AIAssistant: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow-lg overflow-hidden">
       {/* Chat Header */}
-      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-4 flex items-center">
-        <Bot className="w-6 h-6 mr-3" />
-        <div>
-          <h2 className="font-semibold">Kala-Kaart AI Assistant</h2>
-          <p className="text-sm text-orange-100">Find traditional artists & their contact info</p>
+      <div className="bg-gradient-to-r from-orange-600 to-amber-600 text-white p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Bot className="w-6 h-6 mr-3" />
+            <div>
+              <h2 className="font-semibold">Kala-Kaart AI Assistant</h2>
+              <p className="text-sm text-orange-100">Find traditional artists & their contact info</p>
+            </div>
+          </div>
+          
+          {/* Connection Status & Mode Toggle */}
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center">
+              {isConnected ? (
+                <CheckCircle className="w-4 h-4 text-green-300 mr-1" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-300 mr-1" />
+              )}
+              <span className="text-xs">
+                {isConnected ? 'Backend Connected' : 'Using Local Data'}
+              </span>
+            </div>
+            
+            <button
+              onClick={() => setUseBackend(!useBackend)}
+              className={cn(
+                "text-xs px-2 py-1 rounded transition-colors",
+                useBackend 
+                  ? "bg-orange-500 text-white" 
+                  : "bg-orange-200 text-orange-800"
+              )}
+            >
+              {useBackend ? 'AI Mode' : 'Local Mode'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -317,7 +436,7 @@ export const AIAssistant: React.FC = () => {
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask about artists, crafts, or locations..."
+            placeholder={useBackend && isConnected ? "Ask me anything in any language..." : "Ask about artists, crafts, or locations..."}
             className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
           />
           <button
