@@ -11,7 +11,7 @@ import glob
 import logging
 import pandas as pd
 from langchain_community.vectorstores import Chroma, FAISS
-from langchain_huggingface import HuggingFaceEmbeddings  # ✅ updated import
+from langchain_community.embeddings import SentenceTransformerEmbeddings
 
 # Logging
 logging.basicConfig(level=logging.INFO)
@@ -22,8 +22,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "training_data")
 VECTOR_STORE_DIR = os.path.join(BASE_DIR, "vector_stores")
 
-# Embeddings model
-embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+# Embeddings model (stable for langchain 0.2.x)
+embedding_model = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2")
 
 
 def load_documents():
