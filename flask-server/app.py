@@ -20,10 +20,14 @@ logger = logging.getLogger(__name__)
 # Flask App Initialization
 # -------------------------
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:3000", "http://localhost:5173"], 
-     allow_headers=["Content-Type", "Authorization"],
-     methods=["GET", "POST", "OPTIONS"])
-
+CORS(app, 
+     resources={
+         r"/*": {
+             "origins": ["http://localhost:5173", "http://localhost:3000"],
+             "methods": ["GET", "POST", "OPTIONS"],
+             "allow_headers": ["Content-Type", "Authorization"]
+         }
+     })
 # -------------------------
 # Global Variables
 # -------------------------
