@@ -36,3 +36,8 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Add to .gitignore file
+Add-Content -Path ".gitignore" -Value "`n# Model files"
+Add-Content -Path ".gitignore" -Value "*.pkl"
+Add-Content -Path ".gitignore" -Value "flask-server/backend/training/models/"
