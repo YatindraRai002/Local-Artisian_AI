@@ -22,7 +22,7 @@ const ErrorMessage = ({ message }: { message: string }) => (
   </div>
 );
 
-// Helper function to safely get artist data
+
 const getArtistData = (artist: any) => {
   return {
     id: artist.id || artist.government_id || Math.random().toString(),
