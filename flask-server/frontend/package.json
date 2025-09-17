@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "backend": "cd .. && python app.py",
+    "dev:all": "concurrently -k -n BACKEND,FRONTEND -c magenta,cyan \"npm:backend\" \"npm:dev\"",
     "build": "tsc && vite build",
     "vercel-build": "npm run build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -39,6 +41,7 @@
     "postcss": "^8.4.27",
     "tailwindcss": "^3.3.0",
     "typescript": "^5.0.2",
-    "vite": "^4.4.5"
+    "vite": "^4.4.5",
+    "concurrently": "^9.0.1"
   }
 }
