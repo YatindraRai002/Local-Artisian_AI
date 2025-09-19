@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, X, Search, Users, Sparkles, Loader2 } from 'lucide-react';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
-import { getArtistsData, apiService } from '../data/artistsData';
+import { apiService } from '../services/apiService'; // Use the correct apiService
 import type { Artist } from '../types';
 
 export const UserDashboard: React.FC = () => {
@@ -222,17 +222,17 @@ export const UserDashboard: React.FC = () => {
       try {
         setIsLoading(true);
         
-        // Load artists and stats in parallel
+        // Use a general search query to get all artists
         const [artistsResult, statsResult] = await Promise.all([
-          apiService.searchArtists({ limit: 1000 }),
-          apiService.getStats()
+          apiService.searchArtisans(""), // Correct method call for broad search
+          apiService.getStatistics() // Correct method call
         ]);
 
         setArtists(artistsResult.artists || []);
         setStats({
-          totalArtists: statsResult.total_artists || 0,
-          totalCrafts: statsResult.unique_crafts || 0,
-          totalStates: statsResult.unique_states || 0,
+          totalArtists: statsResult.stats.total_artisans || 0,
+          totalCrafts: statsResult.stats.unique_crafts || 0,
+          totalStates: statsResult.stats.unique_states || 0,
         });
         
       } catch (err) {
@@ -240,12 +240,12 @@ export const UserDashboard: React.FC = () => {
         setError('Server temporarily unavailable - using cached data');
         
         // Fallback to local data if available
-        const localArtists = getArtistsData();
-        setArtists(localArtists);
+        // Note: You need a local data source here if the API fails
+        setArtists([]); // Clear artists on failure to avoid stale data
         setStats({
-          totalArtists: localArtists.length,
-          totalCrafts: new Set(localArtists.map(a => a.craft_type)).size,
-          totalStates: new Set(localArtists.map(a => getArtistLocation(a).state)).size,
+          totalArtists: 0,
+          totalCrafts: 0,
+          totalStates: 0,
         });
       } finally {
         setIsLoading(false);
@@ -564,7 +564,7 @@ export const UserDashboard: React.FC = () => {
                             <span className="text-xs text-blue-600 font-medium heritage-text block">ईमेल:</span>
                             <span className="text-xs text-blue-700 font-mono break-all">{contact.email}</span>
                           </div>
-                        </div>
+                          </div>
                       </div>
                       
                       {/* Languages with safe property access */}
