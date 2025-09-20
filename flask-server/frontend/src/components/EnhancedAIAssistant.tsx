@@ -1,59 +1,116 @@
-import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Phone, Mail, MapPin, Palette, Loader2, AlertCircle } from 'lucide-react';
-import { cn } from '../utils/cn';
-import { Message } from '../types';
-import { apiService } from '../data/artistsData';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Send, Bot, User, Phone, Mail, MapPin, Palette, Loader2, AlertCircle, Maximize, Minimize, X } from 'lucide-react';
+import { apiService, ChatResponse } from '../services/apiService';
 
-const TypingIndicator = () => (
-  <div className="flex items-center space-x-1 p-3">
-    <div className="flex space-x-1">
-      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-    </div>
-    <span className="text-sm text-gray-500 ml-2">AI is analyzing...</span>
-  </div>
-);
+// Types
+interface Message {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant';
+  timestamp: Date;
+}
 
-const ErrorMessage = ({ message }: { message: string }) => (
-  <div className="flex items-center space-x-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-    <AlertCircle className="w-4 h-4 text-red-500" />
-    <span className="text-sm text-red-700">{message}</span>
-  </div>
-);
+interface ConnectionStatus {
+  isConnected: boolean;
+  message: string;
+  totalArtisans: number;
+}
 
+interface EnhancedAIAssistantProps {
+  isMaximized: boolean;
+  setIsMaximized: (isMax: boolean) => void;
+  toggleChat: () => void;
+}
 
-const getArtistData = (artist: any) => {
-  return {
-    id: artist.id || artist.government_id || Math.random().toString(),
-    name: artist.name || 'Unknown Artist',
-    age: artist.age || 'N/A',
-    gender: artist.gender || 'N/A',
-    craft_type: artist.craft_type || 'Traditional Craft',
-    location: {
-      village: artist.location?.village || artist.village || 'Unknown Village',
-      district: artist.location?.district || artist.district || 'Unknown District',
-      state: artist.location?.state || artist.state || 'Unknown State'
-    },
-    contact: {
-      phone: artist.contact?.phone || artist.contact_phone || artist.phone || 'Not available',
-      email: artist.contact?.email || artist.contact_email || artist.email || 'Not available',
-      phone_available: artist.contact?.phone_available !== false
-    },
-    languages: artist.languages || (artist.languages_spoken ? artist.languages_spoken.split(',').map((l: string) => l.trim()) : ['Hindi']),
-    government_id: artist.government_id || artist.id || 'N/A',
-    cluster_code: artist.cluster_code || 'N/A'
-  };
+// Utility function for class names
+const cn = (...classes: (string | undefined | null | false)[]): string => {
+  return classes.filter(Boolean).join(' ');
 };
 
-const ArtistCard: React.FC<{ artist: any; onSimilarClick?: (artist: any) => void }> = ({ 
-  artist, 
-  onSimilarClick 
-}) => {
+// Typing Indicator Component (re-styled with your new CSS)
+const TypingIndicator: React.FC = () => (
+  <div className="flex items-start space-x-3 chat-bubble">
+    <div className="w-10 h-10 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+      <span className="text-white text-sm">🎨</span>
+    </div>
+    <div className="bg-white rounded-2xl rounded-tl-md px-4 py-3 shadow-md">
+      <div className="flex space-x-1">
+        <div className="w-2 h-2 bg-gray-400 rounded-full typing-indicator"></div>
+        <div className="w-2 h-2 bg-gray-400 rounded-full typing-indicator" style={{ animationDelay: '0.2s' }}></div>
+        <div className="w-2 h-2 bg-gray-400 rounded-full typing-indicator" style={{ animationDelay: '0.4s' }}></div>
+      </div>
+    </div>
+  </div>
+);
+
+// Error Message Component (re-styled with your new classes)
+const ErrorMessage: React.FC<{ message: string; onRetry?: () => void }> = ({ message, onRetry }) => (
+  <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+    <div className="flex items-center space-x-2">
+      <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+      <span className="text-sm text-red-700">{message}</span>
+    </div>
+    {onRetry && (
+      <button
+        onClick={onRetry}
+        className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded hover:bg-red-200 transition-colors"
+      >
+        Retry
+      </button>
+    )}
+  </div>
+);
+
+// Connection Status Component (re-styled)
+const ConnectionStatusIndicator: React.FC<{ status: ConnectionStatus; onReconnect: () => void }> = ({ 
+  status, 
+  onReconnect 
+}) => (
+  <div className="flex items-center space-x-2">
+    <div className={cn(
+      "w-3 h-3 rounded-full",
+      status.isConnected ? "bg-green-400" : "bg-red-400"
+    )}></div>
+    <span className="text-sm text-gray-600">
+      {status.isConnected ? "Online" : "Offline"}
+    </span>
+  </div>
+);
+
+// Artist Card Component (re-used from your original file)
+const ArtistCard: React.FC<{ 
+  artist: any; 
+  onSimilarClick?: (artist: any) => void;
+}> = ({ artist, onSimilarClick }) => {
+  const getArtistData = (artist: any) => {
+    return {
+      id: artist.artisan_id || artist.id || Math.random().toString(),
+      name: artist.name || 'Unknown Artist',
+      age: artist.age || 'N/A',
+      gender: artist.gender || 'N/A',
+      craft_type: artist.craft_type || 'Traditional Craft',
+      location: {
+        village: artist.village || 'Unknown Village',
+        district: artist.location?.district || artist.district || 'Unknown District', 
+        state: artist.location?.state || artist.state || 'Unknown State'
+      },
+      contact: {
+        phone: artist.phone || 'Not available',
+        email: artist.email || 'Not available',
+        phone_available: artist.phone_available !== false
+      },
+      languages: typeof artist.languages === 'string' 
+        ? artist.languages.split(',').map((l: string) => l.trim()) 
+        : (Array.isArray(artist.languages) ? artist.languages : ['Hindi']),
+      government_id: artist.govt_id || artist.artisan_id || 'N/A',
+      cluster_code: artist.cluster_code || 'N/A'
+    };
+  };
+
   const safeArtist = getArtistData(artist);
   
   return (
-    <div className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-4 mb-3 hover:shadow-md transition-shadow">
+    <div className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4 mb-3 hover:shadow-md transition-all duration-200 chat-bubble">
       <div className="flex items-center justify-between mb-2">
         <h3 className="font-semibold text-gray-900 flex items-center">
           <User className="w-4 h-4 mr-2 text-orange-600" />
@@ -76,14 +133,14 @@ const ArtistCard: React.FC<{ artist: any; onSimilarClick?: (artist: any) => void
         <div className="flex items-center justify-between">
           <div className="flex items-center text-sm text-blue-700">
             <Phone className="w-4 h-4 mr-2" />
-            <span className="font-mono">{safeArtist.contact.phone}</span>
+            <span className="font-mono text-xs">{safeArtist.contact.phone}</span>
             {!safeArtist.contact.phone_available && (
               <span className="text-xs text-gray-500 ml-1">(Limited)</span>
             )}
           </div>
           <div className="flex items-center text-sm text-gray-600">
             <Mail className="w-4 h-4 mr-2" />
-            <span className="truncate max-w-32">{safeArtist.contact.email}</span>
+            <span className="truncate max-w-24 text-xs">{safeArtist.contact.email}</span>
           </div>
         </div>
         
@@ -108,47 +165,74 @@ const ArtistCard: React.FC<{ artist: any; onSimilarClick?: (artist: any) => void
   );
 };
 
-interface ChatResponse {
-  intent: string;
-  entities: any;
-  message: string;
-  llm_message?: string;
-  artists: any[];
-  suggestions: string[];
-  stats?: any;
-}
 
-export const EnhancedAIAssistant: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      content: JSON.stringify({
-        message: "Hello! I'm your Kala-Kaart AI assistant powered by our live backend server with 50,000+ real artisan profiles! I can help you discover traditional Indian artists, search by crafts and locations, provide database statistics, and answer questions about our comprehensive database.",
-        suggestions: [
-          "Show me pottery artists",
-          "Find artists in Rajasthan", 
-          "Get database statistics",
-          "Browse textile crafts"
-        ],
-        llm_message: "🟢 Online mode active: Connected to live backend server with real-time AI responses and comprehensive artisan database."
-      }),
-      role: 'assistant',
-      timestamp: new Date()
-    }
-  ]);
+// Main Component
+export const EnhancedAIAssistant: React.FC<EnhancedAIAssistantProps> = ({ isMaximized, setIsMaximized, toggleChat }) => {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>({
+    isConnected: false,
+    message: 'Connecting...',
+    totalArtisans: 0
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages, isTyping, scrollToBottom]);
+
+  // Initialize connection and welcome message
+  useEffect(() => {
+    checkConnection();
+  }, []);
+
+  const checkConnection = async () => {
+    try {
+      const health = await apiService.healthCheck();
+      setConnectionStatus({
+        isConnected: health.status === 'healthy',
+        message: health.message,
+        totalArtisans: health.total_artisans
+      });
+
+      // Set welcome message if connected and no messages exist
+      if (health.status === 'healthy' && messages.length === 0) {
+        const welcomeMessage: Message = {
+          id: '1',
+          content: JSON.stringify({
+            message: `Hello! I'm your Kala-Kaart AI assistant powered by our live backend server with ${health.total_artisans.toLocaleString()}+ real artisan profiles! I can help you discover traditional Indian artists, search by crafts and locations, provide database statistics, and answer questions about our comprehensive database.`,
+            suggestions: [
+              "Show me pottery artists",
+              "Find artists in Rajasthan", 
+              "Get database statistics",
+              "Browse textile crafts"
+            ],
+            llm_message: `🟢 Online mode active: Connected to live backend server with real-time AI responses and comprehensive artisan database (${health.total_artisans.toLocaleString()} artists loaded).`
+          }),
+          role: 'assistant',
+          timestamp: new Date()
+        };
+        setMessages([welcomeMessage]);
+      }
+      
+      setError(null);
+    } catch (err) {
+      console.error('Connection check failed:', err);
+      setConnectionStatus({
+        isConnected: false,
+        message: err instanceof Error ? err.message : 'Connection failed',
+        totalArtisans: 0
+      });
+      setError('Unable to connect to AI backend. Please check if the server is running.');
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
@@ -167,11 +251,8 @@ export const EnhancedAIAssistant: React.FC = () => {
     setError(null);
 
     try {
-      // Add to conversation history
       const newHistory = [...conversationHistory, currentInput];
       setConversationHistory(newHistory);
-
-      // Call the enhanced API
       const response: ChatResponse = await apiService.chat(currentInput, newHistory);
       
       const assistantMessage: Message = {
@@ -182,22 +263,31 @@ export const EnhancedAIAssistant: React.FC = () => {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      setConversationHistory(prev => [...prev, response.message]);
       
     } catch (err) {
       console.error('Chat error:', err);
-      setError('Failed to get response from AI assistant. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      setError(`Failed to get response: ${errorMessage}`);
       
-      const errorMessage: Message = {
+      const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
         content: JSON.stringify({
-          message: "I apologize, but I'm having trouble connecting to my advanced AI engine. Please check if the backend server is running and try again.",
-          suggestions: ["Retry your question", "Check server status", "Try a simpler query"]
+          message: "I apologize, but I'm having trouble connecting to my AI engine. This could be due to server issues or network problems.",
+          suggestions: [
+            "Retry your question", 
+            "Check server connection", 
+            "Try a simpler query",
+            "Restart the backend server"
+          ],
+          llm_message: "🔴 Connection error: Unable to reach the backend RAG system. Please ensure the Flask server is running on the correct port."
         }),
         role: 'assistant',
         timestamp: new Date()
       };
       
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages(prev => [...prev, errorResponse]);
+      
     } finally {
       setIsTyping(false);
     }
@@ -217,20 +307,27 @@ export const EnhancedAIAssistant: React.FC = () => {
   const handleSimilarArtistsClick = async (artist: any) => {
     try {
       setIsTyping(true);
-      const safeArtist = getArtistData(artist);
-      const response = await apiService.getSimilarArtists(safeArtist.id, 5);
+      setError(null);
+      
+      const artisanId = artist.artisan_id || artist.id;
+      if (!artisanId) {
+        throw new Error('Artist ID not found');
+      }
+      
+      const response = await apiService.getSimilarArtists(artisanId, 5);
       
       const similarMessage: Message = {
         id: Date.now().toString(),
         content: JSON.stringify({
-          message: `Here are artists similar to ${safeArtist.name} (${safeArtist.craft_type} from ${safeArtist.location.state}):`,
+          message: `Here are artists similar to ${response.reference_artisan?.name || 'the selected artist'}:`,
           artists: response.similar_artists || [],
           suggestions: [
-            `More ${safeArtist.craft_type} artists`,
-            `Artists in ${safeArtist.location.state}`,
+            "More artists from same craft",
+            "Artists in same location",
             "Search different criteria",
             "Get contact details"
-          ]
+          ],
+          llm_message: `Found ${response.similar_artists?.length || 0} similar artists based on craft type and location matching.`
         }),
         role: 'assistant',
         timestamp: new Date()
@@ -239,69 +336,75 @@ export const EnhancedAIAssistant: React.FC = () => {
       setMessages(prev => [...prev, similarMessage]);
     } catch (err) {
       console.error('Similar artists error:', err);
-      setError('Failed to find similar artists');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to find similar artists: ${errorMessage}`);
     } finally {
       setIsTyping(false);
     }
   };
 
+  const handleReconnect = () => {
+    checkConnection();
+  };
+
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow-lg overflow-hidden">
-      {/* Enhanced Chat Header */}
-      <div className="bg-gradient-to-r from-orange-600 via-orange-500 to-amber-600 text-white p-6 flex items-center relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <svg className="w-full h-full" viewBox="0 0 100 20">
-            <defs>
-              <pattern id="chat-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                <circle cx="10" cy="10" r="1" fill="white"/>
-              </pattern>
-            </defs>
-            <rect width="100" height="20" fill="url(#chat-pattern)"/>
-          </svg>
-        </div>
-        
-        <div className="relative flex items-center">
-          <div className="bg-white/20 p-3 rounded-2xl mr-4">
-            <Bot className="w-8 h-8 text-white" />
+    <div className="bg-gradient-to-br from-amber-50 to-orange-100 h-full flex flex-col rounded-2xl overflow-hidden">
+      {/* Header with logo, title, and buttons */}
+      <div className="bg-white shadow-lg rounded-b-2xl px-6 py-4 border-b-4 border-amber-400 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-xl font-bold">🎨</span>
           </div>
           <div>
-            <h2 className="font-bold text-xl">Kala-Kaart AI Assistant</h2>
-            <p className="text-orange-100 font-medium">Powered by Advanced NLP & Machine Learning</p>
+            <h1 className="text-2xl font-bold text-gray-800">ArtisanConnect</h1>
+            <p className="text-sm text-gray-600">Find local craftspeople & custom creations</p>
           </div>
         </div>
-        
-        <div className="ml-auto flex items-center space-x-3">
-          <div className="flex items-center bg-green-500/20 px-3 py-1 rounded-full">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse mr-2"></div>
-            <span className="text-xs font-semibold">Online & Connected</span>
-          </div>
+        <div className="flex items-center space-x-2">
+          {/* Removed ConnectionStatusIndicator */}
+          <button
+            onClick={() => setIsMaximized(!isMaximized)}
+            className="p-2 hover:bg-amber-200 rounded-full transition-colors border-2 border-amber-300 bg-white"
+          >
+            {isMaximized ? <Minimize className="w-5 h-5 text-amber-700" /> : <Maximize className="w-5 h-5 text-amber-700" />}
+          </button>
+          <button
+            onClick={toggleChat}
+            className="p-2 hover:bg-amber-200 rounded-full transition-colors border-2 border-amber-300 bg-white"
+          >
+            <X className="w-5 h-5 text-amber-700" />
+          </button>
         </div>
       </div>
-
+      
       {/* Error Display */}
       {error && (
         <div className="p-2 bg-red-50 border-b">
-          <ErrorMessage message={error} />
+          <ErrorMessage message={error} onRetry={handleReconnect} />
         </div>
       )}
 
-      {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      {/* Chat Messages */}
+      <div id="chatContainer" className="flex-1 overflow-y-auto p-6 space-y-4 scroll-smooth">
         {messages.map((message) => (
           <div
             key={message.id}
             className={cn(
-              "flex message-slide-in",
+              "flex items-start chat-bubble",
               message.role === 'user' ? 'justify-end' : 'justify-start'
             )}
           >
+            {message.role === 'assistant' && (
+              <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 mr-3 bg-gradient-to-r from-amber-500 to-orange-500">
+                <span className="text-white text-sm">🎨</span>
+              </div>
+            )}
             <div
               className={cn(
-                "max-w-[85%] rounded-2xl p-4 shadow-md",
+                "rounded-2xl px-4 py-3 shadow-md max-w-md",
                 message.role === 'user'
-                  ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-orange-200'
-                  : 'bg-white text-gray-900 border border-gray-100 shadow-gray-100'
+                  ? 'bg-gray-700 text-white' // Solid dark gray for user
+                  : 'bg-white text-gray-800' // Solid white for AI
               )}
             >
               {message.role === 'assistant' ? (
@@ -311,71 +414,72 @@ export const EnhancedAIAssistant: React.FC = () => {
                       const response: ChatResponse = JSON.parse(message.content);
                       return (
                         <div>
-                          <p className="mb-3">{response.message}</p>
+                          <p className="mb-3 text-gray-800">{response.message}</p>
                           
-                          {/* LLM Response */}
                           {response.llm_message && (
                             <div className="mb-3 p-3 bg-blue-50 border-l-4 border-blue-400 rounded">
-                              <div className="flex items-center mb-1">
-                                <Bot className="w-4 h-4 mr-1 text-blue-600" />
-                                <span className="text-xs text-blue-600 font-medium">AI Analysis:</span>
-                              </div>
-                              <p className="text-sm">{response.llm_message}</p>
+                              <p className="text-sm text-blue-800">{response.llm_message}</p>
                             </div>
                           )}
                           
-                          {/* Artists Results */}
                           {response.artists && response.artists.length > 0 && (
                             <div className="mb-3">
-                              <div className="text-sm text-gray-600 mb-2">
-                                Found {response.artists.length} artist(s):
+                              <div className="text-sm text-gray-600 mb-2 font-medium">
+                                📋 Found {response.artists.length} artist(s):
                               </div>
-                              {response.artists.map((artist: any, index: number) => (
-                                <ArtistCard 
-                                  key={artist.id || artist.government_id || index} 
-                                  artist={artist} 
-                                  onSimilarClick={handleSimilarArtistsClick}
-                                />
-                              ))}
+                              <div className="max-h-80 overflow-y-auto">
+                                {response.artists.map((artist: any, index: number) => (
+                                  <ArtistCard 
+                                    key={artist.artisan_id || artist.id || index} 
+                                    artist={artist} 
+                                    onSimilarClick={handleSimilarArtistsClick}
+                                  />
+                                ))}
+                              </div>
                             </div>
                           )}
                           
-                          {/* Statistics Display */}
                           {response.stats && Object.keys(response.stats).length > 0 && (
-                            <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded">
-                              <div className="text-sm font-medium text-green-800 mb-2">Database Statistics:</div>
-                              <div className="grid grid-cols-2 gap-2 text-xs text-green-700">
-                                {response.stats.total_artists && (
-                                  <div>Total Artists: {response.stats.total_artists.toLocaleString()}</div>
+                            <div className="mb-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                              <div className="text-sm font-semibold text-green-800 mb-3 flex items-center">
+                                📊 Database Statistics:
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-sm text-green-700">
+                                {response.stats.total_artisans && (
+                                  <div className="flex justify-between">
+                                    <span>Total Artists:</span>
+                                    <span className="font-mono font-bold">{response.stats.total_artisans.toLocaleString()}</span>
+                                  </div>
                                 )}
-                                {response.stats.unique_states && (
-                                  <div>States: {response.stats.unique_states}</div>
+                                {response.stats.states && Object.keys(response.stats.states).length > 0 && (
+                                  <div className="flex justify-between">
+                                    <span>States:</span>
+                                    <span className="font-mono font-bold">{Object.keys(response.stats.states).length}</span>
+                                  </div>
                                 )}
-                                {response.stats.unique_crafts && (
-                                  <div>Crafts: {response.stats.unique_crafts}</div>
+                                {response.stats.craft_types && Object.keys(response.stats.craft_types).length > 0 && (
+                                  <div className="flex justify-between">
+                                    <span>Crafts:</span>
+                                    <span className="font-mono font-bold">{Object.keys(response.stats.craft_types).length}</span>
+                                  </div>
                                 )}
-                                {response.stats.unique_districts && (
-                                  <div>Districts: {response.stats.unique_districts}</div>
+                                {response.stats.districts && Object.keys(response.stats.districts).length > 0 && (
+                                  <div className="flex justify-between">
+                                    <span>Districts:</span>
+                                    <span className="font-mono font-bold">{Object.keys(response.stats.districts).length}</span>
+                                  </div>
                                 )}
                               </div>
                             </div>
                           )}
                           
-                          {/* Intent & Entity Display (for debugging) */}
-                          {import.meta.env.DEV && (
-                            <div className="mb-2 text-xs text-gray-500">
-                              Intent: {response.intent} | Entities: {JSON.stringify(response.entities)}
-                            </div>
-                          )}
-                          
-                          {/* Suggestions */}
                           {response.suggestions && response.suggestions.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap gap-2 mt-2">
                               {response.suggestions.map((suggestion: string, index: number) => (
                                 <button
                                   key={`suggestion-${index}`}
                                   onClick={() => handleSuggestionClick(suggestion)}
-                                  className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full hover:bg-orange-200 transition-colors"
+                                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1.5 rounded-full text-sm font-medium transition-colors"
                                 >
                                   {suggestion}
                                 </button>
@@ -385,100 +489,113 @@ export const EnhancedAIAssistant: React.FC = () => {
                         </div>
                       );
                     } catch {
-                      return <p>{message.content}</p>;
+                      return <p className="text-gray-800">{message.content}</p>;
                     }
                   })()}
                 </div>
               ) : (
-                <p>{message.content}</p>
+                <p className="text-white">{message.content}</p>
               )}
-              
-              <div className="text-xs opacity-70 mt-2">
-                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </div>
             </div>
           </div>
         ))}
         
-        {isTyping && (
-          <div className="flex justify-start">
-            <div className="max-w-[85%] bg-gray-100 rounded-lg">
-              <TypingIndicator />
-            </div>
-          </div>
-        )}
+        {isTyping && <TypingIndicator />}
         
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Enhanced Input Area */}
-      <div className="border-t bg-gradient-to-r from-gray-50 to-orange-25 p-4">
-        <div className="flex items-center space-x-3">
+      {/* Input Area */}
+      <div className="bg-white border-t border-gray-200 p-4 rounded-t-2xl shadow-lg">
+        {/* The form, input, and button were converted to React components */}
+        <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center space-x-3">
           <div className="flex-1 relative">
             <input
               type="text"
+              id="messageInput"
+              placeholder="Ask about local artisans, custom orders, or browse crafts..."
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask about artists, crafts, locations, or analytics..."
-              className="w-full p-4 pr-12 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 shadow-sm placeholder-gray-500 bg-white transition-all duration-200"
-              disabled={isTyping}
+              disabled={isTyping || !connectionStatus.isConnected}
             />
-            {inputMessage && (
-              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">
-                <span className="text-xs font-medium">{inputMessage.length}/500</span>
-              </div>
-            )}
           </div>
           <button
-            onClick={handleSendMessage}
-            disabled={!inputMessage.trim() || isTyping}
+            type="submit"
             className={cn(
-              "p-4 rounded-2xl text-white transition-all duration-200 flex items-center shadow-lg",
-              !inputMessage.trim() || isTyping
-                ? "bg-gray-300 cursor-not-allowed scale-95"
-                : "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 hover:scale-105 hover:shadow-xl"
+              "bg-gradient-to-r from-amber-500 to-orange-500 text-white p-3 rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-lg",
+              !inputMessage.trim() || isTyping || !connectionStatus.isConnected
+                ? "opacity-50 cursor-not-allowed"
+                : ""
             )}
+            disabled={!inputMessage.trim() || isTyping || !connectionStatus.isConnected}
           >
             {isTyping ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              <Send className="w-5 h-5" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+              </svg>
             )}
           </button>
-        </div>
+        </form>
         
-        {/* Enhanced Quick Actions */}
-        <div className="mt-4">
-          <div className="text-xs text-gray-500 font-medium mb-2">Quick suggestions:</div>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { text: "Show database stats", icon: "📊" },
-              { text: "Find pottery artists", icon: "🏺" }, 
-              { text: "Artists in Rajasthan", icon: "🗺️" },
-              { text: "Browse textile crafts", icon: "🧵" }
-            ].map((quickAction, index) => (
-              <button
-                key={`quick-action-${index}`}
-                onClick={() => handleSuggestionClick(quickAction.text)}
-                className="flex items-center text-xs bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-full hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700 transition-all duration-200 shadow-sm hover:shadow-md"
-                disabled={isTyping}
-              >
-                <span className="mr-1.5">{quickAction.icon}</span>
-                {quickAction.text}
-              </button>
-            ))}
+        {/* Suggested Actions (re-styled with new classes) */}
+        <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
+          <div className="flex space-x-4">
+            {connectionStatus.isConnected && (
+              <>
+                <button onClick={() => handleSuggestionClick('Find pottery artisans near me')} className="hover:text-amber-600 transition-colors">📍 Find nearby artisans</button>
+                <button onClick={() => handleSuggestionClick('I need custom wedding rings made')} className="hover:text-amber-600 transition-colors">💝 Custom orders</button>
+                <button onClick={() => handleSuggestionClick('What workshops are available?')} className="hover:text-amber-600 transition-colors">🎓 Workshops</button>
+              </>
+            )}
           </div>
-        </div>
-        
-        {/* Status indicator */}
-        <div className="mt-3 flex items-center justify-center">
-          <div className="flex items-center text-xs text-gray-500">
-            <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-            Online mode - Connected to live server with 50,000+ artists
-          </div>
+          <span className="text-gray-400">Press Enter to send</span>
         </div>
       </div>
+
+      {/* CSS from your HTML file */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+          font-family: 'Inter', sans-serif;
+        }
+        
+        .chat-bubble {
+          animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .typing-indicator {
+          animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 1; }
+        }
+        
+        .scroll-smooth {
+          scroll-behavior: smooth;
+        }
+        
+        .ml-13 {
+            margin-left: 3.25rem;
+        }
+      `}</style>
     </div>
   );
 };
