@@ -1,12 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { MessageCircle, X, Search, Users, Sparkles, Loader2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MessageCircle, X, Search, Users, Sparkles, Loader2, Globe } from 'lucide-react';
 import { EnhancedAIAssistant } from './EnhancedAIAssistant';
-import { apiService } from '../services/apiService'; // Use the correct apiService
+import { apiService } from '../services/apiService';
 import type { Artist } from '../types';
+import { translations } from '../translations/languages';
+
+const cn = (...classes: (string | undefined | null | false)[]): string => {
+  return classes.filter(Boolean).join(' ');
+};
 
 export const UserDashboard: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [executedQuery, setExecutedQuery] = useState('');
   const [artists, setArtists] = useState<Artist[]>([]);
   const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
   const [stats, setStats] = useState({
@@ -16,8 +23,24 @@ export const UserDashboard: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lang, setLang] = useState('en');
+  const [isMaximized, setIsMaximized] = useState(false);
+
+  const searchResultsRef = useRef<HTMLDivElement>(null);
+
+  const t = translations[lang] || translations.en;
 
   const toggleChat = () => setIsChatOpen(!isChatOpen);
+
+  useEffect(() => {
+    if (isChatOpen) {
+      setShowChatModal(true);
+    } else {
+      setTimeout(() => {
+        setShowChatModal(false);
+      }, 300);
+    }
+  }, [isChatOpen]);
 
   // Add traditional Indian styling to document head
   useEffect(() => {
@@ -25,6 +48,10 @@ export const UserDashboard: React.FC = () => {
     style.textContent = `
       @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Crimson+Text:wght@400;600&family=Kalam:wght@300;400;700&display=swap');
       
+      body {
+        font-family: 'Poppins', sans-serif;
+      }
+
       .heritage-text {
         font-family: 'Kalam', cursive;
         text-shadow: 2px 2px 4px rgba(139, 69, 19, 0.1);
@@ -179,6 +206,42 @@ export const UserDashboard: React.FC = () => {
       .button-press:active {
         transform: translateY(0) scale(0.98);
       }
+      
+      @keyframes chat-open-anim {
+        from {
+          opacity: 0;
+          transform: scale(0.8) translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+      }
+      @keyframes chat-close-anim {
+        from {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.8) translateY(20px);
+        }
+      }
+      .chat-open-anim {
+        animation: chat-open-anim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      }
+      .chat-close-anim {
+        animation: chat-close-anim 0.3s ease-in forwards;
+      }
+
+      .soft-indian-flag-bg {
+        background: linear-gradient(135deg, 
+          rgba(255, 153, 51, 0.7) 0%,   /* Saffron with transparency */
+          rgba(255, 255, 255, 0.6) 50%, /* White with transparency */
+          rgba(19, 136, 8, 0.7) 100%    /* Green with transparency */
+        );
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1); /* Soft shadow for depth */
+      }
     `;
     document.head.appendChild(style);
 
@@ -222,10 +285,9 @@ export const UserDashboard: React.FC = () => {
       try {
         setIsLoading(true);
         
-        // Use a general search query to get all artists
         const [artistsResult, statsResult] = await Promise.all([
-          apiService.searchArtisans(""), // Correct method call for broad search
-          apiService.getStatistics() // Correct method call
+          apiService.searchArtisans(""), 
+          apiService.getStatistics() 
         ]);
 
         setArtists(artistsResult.artists || []);
@@ -239,9 +301,7 @@ export const UserDashboard: React.FC = () => {
         console.error('Failed to load data:', err);
         setError('Server temporarily unavailable - using cached data');
         
-        // Fallback to local data if available
-        // Note: You need a local data source here if the API fails
-        setArtists([]); // Clear artists on failure to avoid stale data
+        setArtists([]); 
         setStats({
           totalArtists: 0,
           totalCrafts: 0,
@@ -255,14 +315,14 @@ export const UserDashboard: React.FC = () => {
     loadData();
   }, []);
 
-  // Handle search with safe property access
+  // Handle search and scroll when executedQuery changes
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredArtists(artists.slice(0, 12)); // Show first 12
+    if (!executedQuery.trim()) {
+      setFilteredArtists(artists.slice(0, 12));
     } else {
       const filtered = artists.filter(artist => {
         const location = getArtistLocation(artist);
-        const searchLower = searchQuery.toLowerCase();
+        const searchLower = executedQuery.toLowerCase();
         
         return (
           (artist.name || '').toLowerCase().includes(searchLower) ||
@@ -272,9 +332,13 @@ export const UserDashboard: React.FC = () => {
           location.village.toLowerCase().includes(searchLower)
         );
       });
-      setFilteredArtists(filtered.slice(0, 20)); // Show more results for search
+      setFilteredArtists(filtered.slice(0, 20));
+      
+      if (searchResultsRef.current) {
+        searchResultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
-  }, [searchQuery, artists]);
+  }, [executedQuery, artists]);
 
   // Lotus Logo Component
   const LotusLogo: React.FC = () => (
@@ -299,7 +363,7 @@ export const UserDashboard: React.FC = () => {
   );
 
   return (
-    <div className="bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50 mandala-bg" style={{fontFamily: 'Poppins, sans-serif'}}>
+    <div className="bg-gradient-to-br from-orange-50 via-yellow-50 to-red-50 mandala-bg">
       {/* Header */}
       <header className="bg-gradient-to-r from-amber-50 via-orange-50 to-red-50 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b-4 border-double border-amber-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -307,130 +371,100 @@ export const UserDashboard: React.FC = () => {
             <div className="flex items-center space-x-4">
               <LotusLogo />
               <div>
-                <h1 className="text-3xl font-bold heritage-text bg-gradient-to-r from-amber-700 via-orange-600 to-red-600 bg-clip-text text-transparent">कलाकार</h1>
+                <h1 className="text-3xl font-bold heritage-text bg-gradient-to-r from-amber-700 via-orange-600 to-red-600 bg-clip-text text-transparent">{t.dashboard.appName}</h1>
                 <p className="text-xs text-amber-700 heritage-text">Kala-Kaart</p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setExecutedQuery(searchQuery); 
+              }}
+              className="flex items-center space-x-4"
+            >
+              {/* Language Dropdown */}
+              <div className="relative">
+                <select
+                  value={lang}
+                  onChange={(e) => setLang(e.target.value)}
+                  className="pl-3 pr-8 py-2 border-2 border-amber-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-400 bg-white/80 backdrop-blur-sm text-sm"
+                >
+                  <option value="en">English</option>
+                  <option value="hi">हिन्दी</option>
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-amber-600 pointer-events-none">
+                  <Globe className="w-4 h-4" />
+                </div>
+              </div>
+              
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-amber-600 w-4 h-4" />
                 <input
                   type="text"
-                  placeholder="शिल्पकार खोजें • Search artists, crafts..."
+                  placeholder={t.dashboard.searchPlaceholder}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 pr-4 py-3 w-80 border-2 border-amber-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-400 bg-white/80 backdrop-blur-sm heritage-text"
                 />
               </div>
-              <button className="modern-gradient text-white px-6 py-3 rounded-full button-hover button-press heritage-text font-semibold text-sm">
-                🔍 खोजें
+              <button type="submit" className="modern-gradient text-white px-6 py-3 rounded-full button-hover button-press heritage-text font-semibold text-sm">
+                🔍 {t.dashboard.searchButton}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       </header>
 
       {/* Hero Section */}
       <section className="hero-pattern py-20 px-4 relative overflow-hidden">
-        {/* Traditional Architectural Elements */}
-        <div className="absolute inset-0 pointer-events-none">
-          {/* Decorative Mandala Corners */}
-          <svg className="absolute top-5 left-5 w-20 h-20 opacity-10" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="#8b4513" strokeWidth="2"/>
-            <circle cx="50" cy="50" r="30" fill="none" stroke="#8b4513" strokeWidth="1"/>
-            <circle cx="50" cy="50" r="20" fill="none" stroke="#8b4513" strokeWidth="1"/>
-            <path d="M50,10 L55,25 L50,40 L45,25 Z" fill="#8b4513"/>
-            <path d="M90,50 L75,55 L60,50 L75,45 Z" fill="#8b4513"/>
-            <path d="M50,90 L45,75 L50,60 L55,75 Z" fill="#8b4513"/>
-            <path d="M10,50 L25,45 L40,50 L25,55 Z" fill="#8b4513"/>
-          </svg>
-          
-          <svg className="absolute top-5 right-5 w-20 h-20 opacity-10" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="40" fill="none" stroke="#8b4513" strokeWidth="2"/>
-            <circle cx="50" cy="50" r="30" fill="none" stroke="#8b4513" strokeWidth="1"/>
-            <circle cx="50" cy="50" r="20" fill="none" stroke="#8b4513" strokeWidth="1"/>
-            <path d="M50,10 L55,25 L50,40 L45,25 Z" fill="#8b4513"/>
-            <path d="M90,50 L75,55 L60,50 L75,45 Z" fill="#8b4513"/>
-            <path d="M50,90 L45,75 L50,60 L55,75 Z" fill="#8b4513"/>
-            <path d="M10,50 L25,45 L40,50 L25,55 Z" fill="#8b4513"/>
-          </svg>
-        </div>
-        
         <div className="max-w-7xl mx-auto text-center relative z-10">
-          {/* Traditional Border Frame */}
-          <div className="border-4 border-double border-amber-300 rounded-3xl p-8 mb-8 bg-gradient-to-br from-white/80 to-amber-50/80 backdrop-blur-sm">
-            <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium mb-6 heritage-text">
-              <Sparkles className="w-4 h-4 mr-2" />
-              🟢 सर्वर जुड़ा है • Live Artist Database
-            </div>
-            
-            <h2 className="text-4xl md:text-6xl font-bold text-amber-900 mb-4 heritage-text">
-              भारत की कलाकृति परंपरा
+          <div className="border-4 border-double border-amber-300 rounded-3xl p-8 mb-8 soft-indian-flag-bg backdrop-blur-sm">
+            <h2 className="text-4xl md:text-6xl font-bold mb-4 heritage-text text-gray-800"> {/* Changed text color */}
+              {t.dashboard.title}
             </h2>
             <h3 className="text-3xl md:text-5xl font-bold text-gray-800 mb-6" style={{fontFamily: 'Crimson Text, serif'}}>
-              Discover India's
-              <span className="bg-gradient-to-r from-orange-600 via-red-500 to-yellow-600 bg-clip-text text-transparent"> Traditional Artists</span>
+              {t.dashboard.titleSpan}
             </h3>
           </div>
-          
           <p className="text-xl text-amber-800 mb-8 max-w-4xl mx-auto leading-relaxed heritage-text bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-amber-200">
-            🕉 Connect with skilled artisans preserving centuries-old crafts. Our AI assistant helps you find contact information and explore their beautiful heritage work instantly. 🏺
+            {t.dashboard.subtitle}
           </p>
-          
-          {/* Enhanced Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
             <div className="craft-card rounded-2xl p-8 border-2 border-amber-200 shadow-lg relative overflow-hidden">
-              {/* Traditional Corner Decorations */}
-              <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-amber-400 rounded-tl-lg"></div>
-              <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-amber-400 rounded-tr-lg"></div>
-              <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-amber-400 rounded-bl-lg"></div>
-              <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-amber-400 rounded-br-lg"></div>
-              
               <div className="text-6xl mb-4 text-center floating">👥</div>
               <div className="text-4xl font-bold text-amber-900 mb-3 tabular-nums heritage-text text-center">{stats.totalArtists.toLocaleString()}+</div>
-              <div className="text-amber-700 font-medium text-center heritage-text">सत्यापित कारीगर</div>
-              <div className="text-sm text-amber-600 mt-2 text-center">Verified Artists</div>
+              <div className="text-amber-700 font-medium text-center heritage-text">
+                {t.dashboard.stats.verified}
+              </div>
             </div>
             <div className="craft-card rounded-2xl p-8 border-2 border-amber-200 shadow-lg relative overflow-hidden">
-              {/* Traditional Corner Decorations */}
-              <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-amber-400 rounded-tl-lg"></div>
-              <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-amber-400 rounded-tr-lg"></div>
-              <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-amber-400 rounded-bl-lg"></div>
-              <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-amber-400 rounded-br-lg"></div>
-              
               <div className="text-6xl mb-4 text-center floating" style={{animationDelay: '0.5s'}}>🎨</div>
               <div className="text-4xl font-bold text-amber-900 mb-3 tabular-nums heritage-text text-center">{stats.totalCrafts}+</div>
-              <div className="text-amber-700 font-medium text-center heritage-text">पारंपरिक शिल्प</div>
-              <div className="text-sm text-amber-600 mt-2 text-center">Traditional Crafts</div>
+              <div className="text-amber-700 font-medium text-center heritage-text">
+                {t.dashboard.stats.crafts}
+              </div>
             </div>
             <div className="craft-card rounded-2xl p-8 border-2 border-amber-200 shadow-lg relative overflow-hidden">
-              {/* Traditional Corner Decorations */}
-              <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-amber-400 rounded-tl-lg"></div>
-              <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-amber-400 rounded-tr-lg"></div>
-              <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-amber-400 rounded-bl-lg"></div>
-              <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-amber-400 rounded-br-lg"></div>
-              
               <div className="text-6xl mb-4 text-center floating" style={{animationDelay: '1s'}}>🗺️</div>
               <div className="text-4xl font-bold text-amber-900 mb-3 tabular-nums heritage-text text-center">{stats.totalStates}+</div>
-              <div className="text-amber-700 font-medium text-center heritage-text">राज्य शामिल</div>
-              <div className="text-sm text-amber-600 mt-2 text-center">States Covered</div>
+              <div className="text-amber-700 font-medium text-center heritage-text">
+                {t.dashboard.stats.states}
+              </div>
             </div>
           </div>
 
-          {/* CTA */}
           <div className="space-y-4">
             <button
-              onClick={() => setIsChatOpen(true)}
+              onClick={() => toggleChat()}
               className="success-gradient text-white px-10 py-4 rounded-full text-lg font-semibold button-hover button-press heritage-text border-2 border-white/30 flex items-center mx-auto"
             >
               <Sparkles className="w-5 h-5 mr-2" />
-              🤖 AI सहायक से बात करें • Chat with AI Assistant
+              {t.dashboard.cta}
             </button>
-            <p className="text-amber-700 heritage-text">कारीगरों, शिल्प या संपर्क जानकारी के बारे में पूछें</p>
+            <p className="text-amber-700 heritage-text">{t.dashboard.ctaSubtitle}</p>
           </div>
           
-          {/* Decorative Elements */}
           <div className="mt-12 flex justify-center space-x-8">
             <div className="text-4xl floating">🪔</div>
             <div className="text-4xl floating" style={{animationDelay: '0.5s'}}>🕉</div>
@@ -441,60 +475,39 @@ export const UserDashboard: React.FC = () => {
         </div>
       </section>
 
-      {/* Artists Grid */}
-      <section className="py-20 px-4 paisley-pattern">
+      {/* Search Results Section - attach ref here */}
+      <section ref={searchResultsRef} className="py-20 px-4 paisley-pattern">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            {/* Traditional Section Header */}
             <div className="relative inline-block">
-              <svg className="absolute -top-8 -left-8 w-16 h-16 opacity-20" viewBox="0 0 100 100">
-                <path d="M50 10 Q70 30 50 50 Q30 30 50 10" fill="#8b4513"/>
-                <path d="M50 50 Q70 70 50 90 Q30 70 50 50" fill="#8b4513"/>
-                <circle cx="50" cy="50" r="5" fill="#ffd23f"/>
-              </svg>
-              <h3 className="text-5xl font-bold text-amber-900 mb-2 heritage-text">प्रमुख कारीगर</h3>
+              <h3 className="text-5xl font-bold text-amber-900 mb-2 heritage-text">
+                {executedQuery ? `Search Results (${filteredArtists.length})` : t.dashboard.featuredArtists}
+              </h3>
               <h4 className="text-3xl font-bold text-gray-800 mb-4" style={{fontFamily: 'Crimson Text, serif'}}>
-                {searchQuery ? `Search Results (${filteredArtists.length})` : 'Featured Artists'}
+                {executedQuery ? "" : t.dashboard.featuredArtistsSubtitle}
               </h4>
-              <svg className="absolute -bottom-8 -right-8 w-16 h-16 opacity-20" viewBox="0 0 100 100">
-                <path d="M50 10 Q70 30 50 50 Q30 30 50 10" fill="#8b4513"/>
-                <path d="M50 50 Q70 70 50 90 Q30 70 50 50" fill="#8b4513"/>
-                <circle cx="50" cy="50" r="5" fill="#ffd23f"/>
-              </svg>
             </div>
             <p className="text-amber-700 text-lg heritage-text bg-white/60 backdrop-blur-sm rounded-full px-8 py-3 inline-block border border-amber-200">
-              🌟 Discover India's master artisans and their beautiful crafts 🌟
+              🌟 {t.dashboard.featuredArtistsSubtitle} 🌟
             </p>
           </div>
           
           {isLoading ? (
             <div className="flex justify-center items-center py-20">
               <div className="text-center craft-card rounded-3xl p-12 border-2 border-amber-200 bg-white/80 backdrop-blur-sm">
-                <div className="text-6xl mb-6 floating">🔄</div>
                 <Loader2 className="w-12 h-12 text-orange-600 animate-spin mx-auto mb-4" />
-                <p className="text-amber-800 heritage-text text-lg">कारीगरों की जानकारी लोड हो रही है...</p>
-                <p className="text-gray-600">Loading artists from our live database...</p>
+                <p className="text-amber-800 heritage-text text-lg">{t.dashboard.stats.loading}</p>
               </div>
             </div>
           ) : error ? (
             <div className="text-center py-16 craft-card border-2 border-amber-200 rounded-3xl mx-4">
               <div className="text-amber-500 mb-6">
-                <div className="text-6xl mb-4 floating">⚠️</div>
-                <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Sparkles className="w-10 h-10 text-amber-600" />
-                </div>
+                <Sparkles className="w-10 h-10 text-amber-600 mx-auto mb-4 floating" />
               </div>
-              <h4 className="text-2xl font-bold text-amber-900 mb-3 heritage-text">बैकअप डेटा का उपयोग</h4>
-              <h5 className="text-xl font-bold text-gray-800 mb-3">Using Cached Data</h5>
+              <h4 className="text-2xl font-bold text-amber-900 mb-3 heritage-text">{t.dashboard.stats.backup}</h4>
               <p className="text-amber-700 mb-4 max-w-md mx-auto heritage-text">
                 {error} 
               </p>
-              <div className="space-y-2">
-                <div className="inline-flex items-center px-4 py-2 bg-amber-100 text-amber-800 rounded-full text-sm font-medium heritage-text">
-                  <span className="w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
-                  बैकअप मोड सक्रिय • Backup Mode Active
-                </div>
-              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -505,42 +518,31 @@ export const UserDashboard: React.FC = () => {
                 
                 return (
                   <div key={artist.id || Math.random()} className="craft-card rounded-2xl p-6 border-2 border-amber-200 shadow-lg relative overflow-hidden">
-                    {/* Traditional Corner Decorations */}
-                    <div className="absolute top-2 left-2 w-6 h-6 border-l-2 border-t-2 border-amber-400 rounded-tl-lg"></div>
-                    <div className="absolute top-2 right-2 w-6 h-6 border-r-2 border-t-2 border-amber-400 rounded-tr-lg"></div>
-                    <div className="absolute bottom-2 left-2 w-6 h-6 border-l-2 border-b-2 border-amber-400 rounded-bl-lg"></div>
-                    <div className="absolute bottom-2 right-2 w-6 h-6 border-r-2 border-b-2 border-amber-400 rounded-br-lg"></div>
-                    
-                    {/* Status Badge */}
                     <div className="absolute top-0 right-0 bg-gradient-to-r from-emerald-400 to-green-400 text-white px-3 py-1 text-xs font-medium rounded-bl-lg flex items-center heritage-text">
                       <span className="w-1.5 h-1.5 bg-white rounded-full mr-1.5"></span>
-                      उपलब्ध • Available
+                      {t.dashboard.available}
                     </div>
-                    
-                    {/* Artist Avatar Placeholder */}
                     <div className="text-center mb-6">
                       <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-orange-200 to-amber-200 rounded-full flex items-center justify-center floating">
                         <Users className="w-10 h-10 text-orange-600" />
                       </div>
                       <h4 className="font-bold text-amber-900 text-lg mb-1 heritage-text leading-tight">{artist.name || 'Unknown Artist'}</h4>
                       <div className="flex items-center justify-center text-amber-700 text-sm heritage-text">
-                        <span>{artist.age || 'N/A'} वर्ष</span>
+                        <span>{artist.age || 'N/A'} {t.dashboard.ageLabel}</span>
                         <span className="mx-2 text-amber-400">•</span>
-                        <span className="capitalize">{artist.gender === 'male' ? 'पुरुष' : artist.gender === 'female' ? 'महिला' : 'N/A'}</span>
+                        <span className="capitalize">
+                          {artist.gender === 'male' ? t.dashboard.genderMale : artist.gender === 'female' ? t.dashboard.genderFemale : 'N/A'}
+                        </span>
                       </div>
                     </div>
-                    
                     <div className="space-y-4">
-                      {/* Craft Type - Enhanced */}
                       <div className="bg-gradient-to-r from-purple-50 via-purple-25 to-pink-50 border-2 border-purple-200 rounded-xl p-4">
                         <div className="text-center">
                           <div className="text-3xl mb-2">🎨</div>
                           <div className="font-bold text-purple-900 text-sm heritage-text">{artist.craft_type || 'Traditional Craft'}</div>
-                          <div className="text-xs text-purple-600 heritage-text">पारंपरिक कारीगर • Traditional Artisan</div>
+                          <div className="text-xs text-purple-600 heritage-text">{t.dashboard.traditionalArtisan}</div>
                         </div>
                       </div>
-                      
-                      {/* Location - Enhanced with safe property access */}
                       <div className="bg-gradient-to-r from-emerald-50 via-emerald-25 to-green-50 border-2 border-emerald-200 rounded-xl p-4">
                         <div className="text-center">
                           <div className="text-3xl mb-2">📍</div>
@@ -548,28 +550,24 @@ export const UserDashboard: React.FC = () => {
                           <div className="text-xs text-emerald-600 heritage-text">{location.state}, भारत</div>
                         </div>
                       </div>
-                      
-                      {/* Contact Information - Redesigned with safe property access */}
                       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
                         <div className="text-center mb-3">
                           <div className="text-3xl mb-2">📞</div>
-                          <div className="text-xs text-blue-700 font-bold uppercase tracking-wide heritage-text">संपर्क विवरण • Contact Details</div>
+                          <div className="text-xs text-blue-700 font-bold uppercase tracking-wide heritage-text">{t.dashboard.contactDetails}</div>
                         </div>
                         <div className="space-y-2 text-center">
                           <div className="bg-white rounded-lg p-2 border">
-                            <span className="text-xs text-blue-600 font-medium heritage-text block">फ़ोन:</span>
+                            <span className="text-xs text-blue-600 font-medium heritage-text block">{t.dashboard.phoneLabel}</span>
                             <span className="text-sm font-mono text-blue-800 font-bold">{contact.phone}</span>
                           </div>
                           <div className="bg-white rounded-lg p-2 border">
-                            <span className="text-xs text-blue-600 font-medium heritage-text block">ईमेल:</span>
+                            <span className="text-xs text-blue-600 font-medium heritage-text block">{t.dashboard.emailLabel}</span>
                             <span className="text-xs text-blue-700 font-mono break-all">{contact.email}</span>
                           </div>
-                          </div>
+                        </div>
                       </div>
-                      
-                      {/* Languages with safe property access */}
                       <div className="text-center">
-                        <div className="text-xs text-amber-600 font-medium mb-2 heritage-text">भाषाएं • Languages Spoken:</div>
+                        <div className="text-xs text-amber-600 font-medium mb-2 heritage-text">{t.dashboard.languagesLabel}</div>
                         <div className="flex flex-wrap gap-1 justify-center">
                           {languages.slice(0, 3).map((lang: string, index: number) => (
                             <span key={index} className="text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-medium border-2 border-amber-200 heritage-text">
@@ -578,16 +576,14 @@ export const UserDashboard: React.FC = () => {
                           ))}
                           {languages.length > 3 && (
                             <span className="text-xs bg-orange-100 text-orange-800 px-3 py-1 rounded-full font-medium border-2 border-orange-200 heritage-text">
-                              +{languages.length - 3} और
+                              +{languages.length - 3} {t.dashboard.moreLanguages}
                             </span>
                           )}
                         </div>
                       </div>
-                      
-                      {/* Action Buttons */}
                       <div className="flex space-x-2 pt-2">
                         <button className="flex-1 traditional-gradient text-white py-3 px-4 rounded-full font-semibold text-sm button-hover button-press heritage-text">
-                          🤝 कारीगर से संपर्क • Contact
+                          {t.dashboard.contactButton}
                         </button>
                         <button className="warning-gradient text-white p-3 rounded-full button-hover button-press border-2 border-white/30">
                           <Users className="w-4 h-4" />
@@ -606,35 +602,30 @@ export const UserDashboard: React.FC = () => {
               <div className="text-amber-400 mb-4">
                 <Search className="w-16 h-16 mx-auto" />
               </div>
-              <h4 className="text-xl font-semibold text-amber-800 mb-2 heritage-text">कोई कारीगर नहीं मिले</h4>
-              <h5 className="text-lg font-semibold text-gray-600 mb-2">No artists found</h5>
+              <h4 className="text-xl font-semibold text-amber-800 mb-2 heritage-text">{t.dashboard.noArtists}</h4>
               <p className="text-amber-600 heritage-text">खोज में समायोजन करें या AI सहायक से मदद लें</p>
             </div>
           )}
         </div>
       </section>
 
-      {/* Chat Assistant */}
-      {isChatOpen && (
+      {showChatModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-2xl h-[600px] flex flex-col relative border-4 border-amber-300 shadow-2xl">
-            <div className="bg-gradient-to-r from-amber-100 to-orange-100 rounded-t-xl p-4 border-b-2 border-amber-200">
-              <h3 className="font-bold text-amber-800 heritage-text text-center">🤖 कलाकार AI सहायक • Kalakar AI Assistant</h3>
-            </div>
-            <button
-              onClick={toggleChat}
-              className="absolute top-4 right-4 z-10 p-2 hover:bg-amber-200 rounded-full transition-colors border-2 border-amber-300 bg-white"
-            >
-              <X className="w-5 h-5 text-amber-700" />
-            </button>
-            <div className="flex-1 overflow-hidden">
-              <EnhancedAIAssistant />
-            </div>
+          <div
+            className={`bg-white rounded-2xl w-full flex flex-col relative border-4 border-amber-300 shadow-2xl transition-all duration-300 transform ${
+              isMaximized ? 'max-w-full h-full' : 'max-w-3xl h-[90vh]'
+            } ${isChatOpen ? 'scale-100 opacity-100 chat-open-anim' : 'scale-95 opacity-0 chat-close-anim'}`}
+          >
+            {/* Pass state and functions as props */}
+            <EnhancedAIAssistant 
+              isMaximized={isMaximized} 
+              setIsMaximized={setIsMaximized} 
+              toggleChat={toggleChat}
+            />
           </div>
         </div>
       )}
 
-      {/* Floating Chat Button */}
       {!isChatOpen && (
         <button
           onClick={toggleChat}
@@ -646,6 +637,35 @@ export const UserDashboard: React.FC = () => {
           <MessageCircle className="w-6 h-6" />
         </button>
       )}
+
+      <style>{`
+        @keyframes chat-open-anim {
+          from {
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        @keyframes chat-close-anim {
+          from {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+          to {
+            opacity: 0;
+            transform: scale(0.8) translateY(20px);
+          }
+        }
+        .chat-open-anim {
+          animation: chat-open-anim 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .chat-close-anim {
+          animation: chat-close-anim 0.3s ease-in forwards;
+        }
+      `}</style>
     </div>
   );
 };
